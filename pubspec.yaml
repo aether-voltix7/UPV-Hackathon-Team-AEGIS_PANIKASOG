@@ -44,6 +44,13 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.11.0 # for the app icon
+
+# app icon
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/favicon.png"
 
 flutter:
   uses-material-design: true

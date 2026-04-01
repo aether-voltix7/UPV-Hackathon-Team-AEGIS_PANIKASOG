@@ -18,18 +18,14 @@ class AppLogo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Runner icon (replace with actual SVG asset when available)
+        // Logo
         Container(
           width: iconSize,
           height: iconSize,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.directions_run,
-            color: color,
-            size: iconSize * 0.7,
+          color: Colors.transparent,
+          child: Image.asset(
+            'assets/images/panikasog-logo.png',
+            fit: BoxFit.contain,
           ),
         ),
         const SizedBox(width: 6),
