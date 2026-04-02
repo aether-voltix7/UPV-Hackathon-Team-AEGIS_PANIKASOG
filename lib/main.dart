@@ -7,7 +7,11 @@ import 'providers/auth_provider.dart';
 import 'services/auth_service.dart';
 import 'screens/auth/landing_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/profile/profile_screen.dart';
+import 'screens/settings/settings_screen.dart';
 import 'firebase_options.dart'; 
+import 'providers/post_provider.dart';
+import 'services/post_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +29,8 @@ class PanikasogApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider(AuthService())),
+        ChangeNotifierProvider(create: (_) => AuthProvider(AuthService())),
+  ChangeNotifierProvider(create: (_) => PostProvider(PostService())),
       ],
       child: MaterialApp(
         title: 'PANIKASOG',
@@ -34,6 +40,8 @@ class PanikasogApp extends StatelessWidget {
         routes: {
           '/home': (_) => const MainScreen(),
           '/landing': (_) => const LandingScreen(),
+          '/profile': (_) => const ProfileScreen(),
+          '/settings': (_) => const SettingsScreen(),
         },
       ),
     );
