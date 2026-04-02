@@ -27,13 +27,13 @@ class TaskProvider extends ChangeNotifier {
       _tasks.where((t) => t.status != TaskStatus.open).toList();
 
   // ─── Load ──────────────────────────────────────────────────────────────────
-  Future<void> loadTasks({bool refresh = false}) async {
+    Future<void> loadTasks({bool refresh = false}) async {
     if (_isLoading) return;
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      // keep mock tasks
       if (refresh || _tasks.isEmpty) {
         _tasks = TaskModel.mockTasks;
       }
