@@ -7,6 +7,8 @@ import 'providers/auth_provider.dart';
 import 'services/auth_service.dart';
 import 'screens/auth/landing_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/profile/profile_screen.dart';
+import 'screens/settings/settings_screen.dart';
 import 'firebase_options.dart'; 
 
 void main() async {
@@ -34,6 +36,8 @@ class PanikasogApp extends StatelessWidget {
         routes: {
           '/home': (_) => const MainScreen(),
           '/landing': (_) => const LandingScreen(),
+          '/profile': (_) => const ProfileScreen(),
+          '/settings': (_) => const SettingsScreen(),
         },
       ),
     );
