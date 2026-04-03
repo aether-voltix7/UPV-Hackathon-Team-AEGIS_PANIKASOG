@@ -25,6 +25,13 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
+// for release keystore
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace "com.panikasog.app"
     compileSdk 36
@@ -64,10 +71,20 @@ android {
         multiDexEnabled true
     }
 
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties.getProperty('keyAlias')
+            keyPassword keystoreProperties.getProperty('keyPassword')
+            storeFile keystoreProperties.getProperty('storeFile') ? file(keystoreProperties.getProperty('storeFile')) : null
+            storePassword keystoreProperties.getProperty('storePassword')
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add signing config for production release
-            signingConfig signingConfigs.debug
+            // DONE: Add signing config for production release
+            // signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled false
             shrinkResources false
         }
