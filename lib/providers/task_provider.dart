@@ -1,8 +1,15 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/task_model.dart';
+import '../services/task_service.dart';
 
 class TaskProvider extends ChangeNotifier {
+  final TaskService _service;
+
+  TaskProvider(this._service) {
+    loadTasks();
+  }
+
   List<TaskModel> _tasks = [];
   TaskModel? _activeTask;
   bool _isLoading = false;
@@ -33,11 +40,10 @@ class TaskProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (refresh || _tasks.isEmpty) {
-        _tasks = TaskModel.mockTasks;
-      }
+      final firestoreTasks = await _service.getTasks();
+      _tasks = [...firestoreTasks, ...TaskModel.mockTasks];
     } catch (e) {
+      _tasks = TaskModel.mockTasks; // fallback to mock if Firestore fails
       _error = 'Failed to load tasks.';
     } finally {
       _isLoading = false;
@@ -47,8 +53,15 @@ class TaskProvider extends ChangeNotifier {
 
   // ─── Accept Task ───────────────────────────────────────────────────────────
   Future<bool> acceptTask(String taskId, String userId) async {
+    if (_tasks.isEmpty) await loadTasks();
+
     final idx = _tasks.indexWhere((t) => t.id == taskId);
     if (idx == -1) return false;
+
+    try {
+      await _service.acceptTask(taskId, userId);
+    } catch (_) {}
+
     _tasks[idx] = _tasks[idx].copyWith(
       status: TaskStatus.accepted,
       acceptedBy: userId,
@@ -81,6 +94,11 @@ class TaskProvider extends ChangeNotifier {
     pauseTimer();
     final idx = _tasks.indexWhere((t) => t.id == taskId);
     if (idx == -1) return;
+
+    try {
+      await _service.completeTask(taskId);
+    } catch (_) {}
+
     _tasks[idx] = _tasks[idx].copyWith(
       status: TaskStatus.completed,
       completedAt: DateTime.now(),
@@ -97,6 +115,12 @@ class TaskProvider extends ChangeNotifier {
   }) async {
     final idx = _tasks.indexWhere((t) => t.id == taskId);
     if (idx == -1) return false;
+
+    try {
+      await _service.submitVerification(
+          taskId: taskId, note: note, photos: photos);
+    } catch (_) {}
+
     _tasks[idx] = _tasks[idx].copyWith(
       status: TaskStatus.verified,
       verificationNote: note,
@@ -122,25 +146,34 @@ class TaskProvider extends ChangeNotifier {
     required DateTime scheduledEnd,
     required String createdBy,
     bool isUrgent = false,
+    double? latitude,
+    double? longitude,
   }) async {
-    final task = TaskModel(
-      id: 'task_${DateTime.now().millisecondsSinceEpoch}',
-      title: title,
-      description: description,
-      barangay: barangay,
-      city: city,
-      category: category,
-      tags: tags,
-      points: points,
-      volunteersNeeded: volunteersNeeded,
-      scheduledStart: scheduledStart,
-      scheduledEnd: scheduledEnd,
-      createdBy: createdBy,
-      isUrgent: isUrgent,
-    );
-    _tasks.insert(0, task);
-    notifyListeners();
-    return task;
+    try {
+      final task = await _service.createTask(
+        title: title,
+        description: description,
+        barangay: barangay,
+        city: city,
+        category: category,
+        tags: tags,
+        points: points,
+        volunteersNeeded: volunteersNeeded,
+        scheduledStart: scheduledStart,
+        scheduledEnd: scheduledEnd,
+        createdBy: createdBy,
+        isUrgent: isUrgent,
+        latitude: latitude,
+        longitude: longitude,
+      );
+      _tasks.insert(0, task);
+      notifyListeners();
+      return task;
+    } catch (e) {
+      _error = 'Failed to create task.';
+      notifyListeners();
+      return null;
+    }
   }
 
   String formatElapsed() {
@@ -148,6 +181,11 @@ class TaskProvider extends ChangeNotifier {
     final m = (_elapsed.inMinutes % 60).toString().padLeft(2, '0');
     final s = (_elapsed.inSeconds % 60).toString().padLeft(2, '0');
     return '$h:$m:$s';
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
   }
 
   @override

@@ -4,12 +4,24 @@ import 'package:percent_indicator/percent_indicator.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../models/user_model.dart';
+import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/post_service.dart';
+import '../../widgets/post_card.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _UserPostsTab extends StatefulWidget {
+  final String userId;
+  const _UserPostsTab({required this.userId});
+
+  @override
+  State<_UserPostsTab> createState() => _UserPostsTabState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
@@ -67,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           controller: _tabs,
           children: [
             _InfoTab(user: user),
-            const _EmptyTab(label: 'No posts yet', icon: Icons.grid_on_outlined),
+            _UserPostsTab(userId: user.uid),
             const _EmptyTab(label: 'No tasks yet', icon: Icons.assignment_outlined),
             const _EmptyTab(label: 'No reports yet', icon: Icons.report_outlined),
             const _EmptyTab(label: 'No rewards yet', icon: Icons.card_giftcard_outlined),
@@ -327,4 +339,54 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
       Container(color: AppColors.white, child: tabBar);
   @override
   bool shouldRebuild(covariant _TabBarDelegate oldDelegate) => tabBar != oldDelegate.tabBar;
+}
+
+// ─── Post Tab ────────────────────────────────────────────
+
+class _UserPostsTabState extends State<_UserPostsTab> {
+  late Stream<List<PostModel>> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = PostService().getPostsByUser(widget.userId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<PostModel>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
+        }
+
+        final posts = snapshot.data ?? [];
+
+        if (posts.isEmpty) {
+          return const _EmptyTab(
+            label: 'No posts yet',
+            icon: Icons.grid_on_outlined,
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.only(bottom: 16),
+          itemCount: posts.length,
+          itemBuilder: (context, i) {
+            final post = posts[i];
+            return PostCard(
+              post: post,
+              currentUserId: widget.userId,
+              userVote: null,
+              onUpvote: () {},
+              onDownvote: () {},
+            );
+          },
+        );
+      },
+    );
+  }
 }

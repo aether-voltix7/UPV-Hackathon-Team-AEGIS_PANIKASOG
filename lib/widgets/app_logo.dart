@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
-import '../core/constants/text_styles.dart';
+// import '../core/constants/text_styles.dart';
 
 class AppLogo extends StatelessWidget {
   final double iconSize;
@@ -14,29 +14,18 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = darkBackground ? AppColors.white : AppColors.primary;
+    // final color = darkBackground ? AppColors.white : AppColors.primary;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Runner icon (replace with actual SVG asset when available)
-        Container(
-          width: iconSize,
-          height: iconSize,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
+        // Logo
+        SizedBox(
+          width: 200,
+          child: Image.asset(
+            'assets/images/panikasog-logo.png',
+            fit: BoxFit.contain,
           ),
-          child: Icon(
-            Icons.directions_run,
-            color: color,
-            size: iconSize * 0.7,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          'PANIKASOG',
-          style: AppTextStyles.logoText.copyWith(color: color),
-        ),
+        )
       ],
     );
   }

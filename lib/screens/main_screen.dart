@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:panikasog/services/task_service.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/colors.dart';
 import '../providers/post_provider.dart';
@@ -56,7 +57,7 @@ class _MainScreenState extends State<MainScreen>
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => PostProvider(PostService())),
-        ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => TaskProvider(TaskService())),
       ],
       child: Builder(builder: (ctx) => Scaffold(
         backgroundColor: AppColors.lightGrey,

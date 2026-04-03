@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../models/task_model.dart';
@@ -125,11 +126,22 @@ class TaskDetailScreen extends StatelessWidget {
 
   Future<void> _acceptTask(BuildContext context) async {
     final userId = context.read<AuthProvider>().user?.uid ?? '';
+    if (userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to accept tasks'), backgroundColor: AppColors.primary),
+      );
+      return;
+    }
+    
     final success = await context.read<TaskProvider>().acceptTask(task.id, userId);
     if (!context.mounted) return;
     if (success) {
       Navigator.pushReplacement(context,
           MaterialPageRoute(builder: (_) => TaskAcceptedScreen(task: task)));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to accept task. Please try again.'), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -222,16 +234,27 @@ class TaskNavigateScreen extends StatelessWidget {
       body: Column(children: [
         // Map placeholder
         Expanded(
-          child: Container(
-            color: const Color(0xFFE8EAF6),
-            child: const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.map_outlined, size: 80, color: AppColors.borderGrey),
-              SizedBox(height: 12),
-              Text('Google Maps will appear here\nafter adding your API key', style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
-            ])),
+          child: GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: task.latitude != null && task.longitude != null
+                  ? LatLng(task.latitude!, task.longitude!)
+                  : const LatLng(10.7202, 122.5621), // default: Iloilo City
+              zoom: 15,
+            ),
+            markers: task.latitude != null && task.longitude != null
+                ? {
+                    Marker(
+                      markerId: const MarkerId('task_location'),
+                      position: LatLng(task.latitude!, task.longitude!),
+                      infoWindow: InfoWindow(title: task.title, snippet: '${task.barangay}, ${task.city}'),
+                    ),
+                  }
+                : {},
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
+            zoomControlsEnabled: false,
           ),
         ),
-
         // Bottom card
         Container(
           padding: const EdgeInsets.all(20),
