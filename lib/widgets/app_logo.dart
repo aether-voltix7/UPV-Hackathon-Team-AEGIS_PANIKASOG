@@ -22,7 +22,7 @@ class AppLogo extends StatelessWidget {
         SizedBox(
           width: 200,
           child: Image.asset(
-            '../../assets/images/panikasog-logo.png',
+            'assets/images/panikasog-logo.png',
             fit: BoxFit.contain,
           ),
         )
