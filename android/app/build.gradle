@@ -4,7 +4,7 @@ plugins {
     // Flutter plugin applied via settings.gradle flutter-plugin-loader
     id "dev.flutter.flutter-gradle-plugin"
     // Firebase — uncomment after running: flutterfire configure
-    // id "com.google.gms.google-services"
+    id "com.google.gms.google-services"
 }
 
 def localProperties = new Properties()
@@ -55,7 +55,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.panikasog.app"
+        applicationId "com.example.panikasog"
         // Must be 21+ for Firebase Auth
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
@@ -85,3 +85,4 @@ dependencies {
     // implementation platform('com.google.firebase:firebase-bom:32.7.0')
     // implementation 'com.google.firebase:firebase-analytics'
 }
+

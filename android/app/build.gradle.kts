@@ -14,6 +14,7 @@ dependencies {
 
   // Add the dependencies for any other desired Firebase products
   // https://firebase.google.com/docs/android/setup#available-libraries
+  implementation("com.google.firebase:firebase-auth")
 }
 android {
     namespace = "com.example.panikasog"

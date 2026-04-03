@@ -27,8 +27,7 @@ class AuthStepIndicator extends StatelessWidget {
           child: LinearProgressIndicator(
             value: currentStep / totalSteps,
             backgroundColor: AppColors.borderGrey,
-            valueColor:
-                const AlwaysStoppedAnimation<Color>(AppColors.primary),
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
             minHeight: 6,
           ),
         ),
@@ -50,8 +49,7 @@ class AuthOrDivider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             '- or -',
-            style:
-                AppTextStyles.bodySmall.copyWith(color: AppColors.hintGrey),
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.hintGrey),
           ),
         ),
         const Expanded(child: Divider(color: AppColors.borderGrey)),

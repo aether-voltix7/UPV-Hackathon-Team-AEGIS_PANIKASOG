@@ -105,41 +105,92 @@ class AuthService {
   }
 
   // ─── Google Sign-In ───────────────────────────────────────────────────────
-  Future<UserModel> signInWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) {
-      throw FirebaseAuthException(
-        code: 'sign-in-cancelled',
-        message: 'Google sign-in was cancelled.',
-      );
-    }
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    final userCredential = await _auth.signInWithCredential(credential);
-    final user = userCredential.user!;
+  // Future<UserModel> signInWithGoogle() async {
+  //   final googleUser = await _googleSignIn.signIn();
+  //   if (googleUser == null) {
+  //     throw FirebaseAuthException(
+  //       code: 'sign-in-cancelled',
+  //       message: 'Google sign-in was cancelled.',
+  //     );
+  //   }
+  //   final googleAuth = await googleUser.authentication;
+  //   final credential = GoogleAuthProvider.credential(
+  //     accessToken: googleAuth.accessToken,
+  //     idToken: googleAuth.idToken,
+  //   );
+  //   final userCredential = await _auth.signInWithCredential(credential);
+  //   final user = userCredential.user!;
 
-    // Check if first-time
-    final doc = await _db.collection('users').doc(user.uid).get();
-    if (!doc.exists) {
-      // Create minimal profile – user will complete profile later
-      final username = 'user_${user.uid.substring(0, 6)}';
-      final userModel = UserModel(
-        uid: user.uid,
-        email: user.email ?? '',
-        name: user.displayName ?? 'User',
-        username: username,
-        referralCode: _generateReferralCode(user.uid),
-        avatarUrl: user.photoURL,
-        dateJoined: DateTime.now(),
+  //   // Check if first-time
+  //   final doc = await _db.collection('users').doc(user.uid).get();
+  //   if (!doc.exists) {
+  //     // Create minimal profile – user will complete profile later
+  //     final username = 'user_${user.uid.substring(0, 6)}';
+  //     final userModel = UserModel(
+  //       uid: user.uid,
+  //       email: user.email ?? '',
+  //       name: user.displayName ?? 'User',
+  //       username: username,
+  //       referralCode: _generateReferralCode(user.uid),
+  //       avatarUrl: user.photoURL,
+  //       dateJoined: DateTime.now(),
+  //     );
+  //     await _db.collection('users').doc(user.uid).set(userModel.toFirestore());
+  //     return userModel;
+  //   }
+  //   return UserModel.fromFirestore(doc);
+  // }
+
+  Future<UserModel> signInWithGoogle() async {
+    try {
+      print("Starting Google Sign-In...");
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        print("Google sign-in was cancelled by user.");
+        throw FirebaseAuthException(
+          code: 'sign-in-cancelled',
+          message: 'Google sign-in was cancelled.',
+        );
+      }
+      print("Google user obtained: ${googleUser.email}");
+      
+      final googleAuth = await googleUser.authentication;
+      print("ID Token: ${googleAuth.idToken}");
+      print("Access Token: ${googleAuth.accessToken}");
+      
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
-      await _db.collection('users').doc(user.uid).set(userModel.toFirestore());
-      return userModel;
+      
+      final userCredential = await _auth.signInWithCredential(credential);
+      print("Firebase sign-in successful: ${userCredential.user?.uid}");
+      
+      final user = userCredential.user!;
+      // Check if first-time user
+      final doc = await _db.collection('users').doc(user.uid).get();
+      if (!doc.exists) {
+        final username = 'user_${user.uid.substring(0, 6)}';
+        final userModel = UserModel(
+          uid: user.uid,
+          email: user.email ?? '',
+          name: user.displayName ?? 'User',
+          username: username,
+          referralCode: _generateReferralCode(user.uid),
+          avatarUrl: user.photoURL,
+          dateJoined: DateTime.now(),
+        );
+        await _db.collection('users').doc(user.uid).set(userModel.toFirestore());
+        return userModel;
+      }
+      return UserModel.fromFirestore(doc);
+    } catch (e, st) {
+      print("Google sign-in failed: $e");
+      print(st);
+      rethrow;
     }
-    return UserModel.fromFirestore(doc);
   }
+
 
   // ─── Fetch User Model ─────────────────────────────────────────────────────
   Future<UserModel> _fetchUserModel(String uid) async {
