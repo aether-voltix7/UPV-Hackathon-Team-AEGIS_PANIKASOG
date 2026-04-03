@@ -12,6 +12,8 @@ import 'screens/settings/settings_screen.dart';
 import 'firebase_options.dart'; 
 import 'providers/post_provider.dart';
 import 'services/post_service.dart';
+import 'providers/task_provider.dart';
+import 'services/task_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,9 +30,9 @@ class PanikasogApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider(AuthService())),
-        ChangeNotifierProvider(create: (_) => AuthProvider(AuthService())),
-  ChangeNotifierProvider(create: (_) => PostProvider(PostService())),
+        ChangeNotifierProvider(create: (_) => AuthProvider(AuthService()))
+        ChangeNotifierProvider(create: (_) => PostProvider(PostService())),
+        ChangeNotifierProvider(create: (_) => TaskProvider(TaskService())),
       ],
       child: MaterialApp(
         title: 'PANIKASOG',

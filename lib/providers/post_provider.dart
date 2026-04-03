@@ -44,31 +44,29 @@ class PostProvider extends ChangeNotifier {
   // ─── Load / Refresh ────────────────────────────────────────────────────────
 
   Future<void> loadFeed({bool refresh = false}) async {
-    if (_isLoading) return;
-    if (refresh) {
-      _posts = [];
-      _hasMore = true;
-    }
-    if (!_hasMore) return;
-
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // Mock data during development — remove when Firestore is live
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (refresh || _posts.isEmpty) {
-        _posts = PostService.mockPosts;
-      }
-      _hasMore = false;
-    } catch (e) {
-      _error = 'Failed to load posts. Pull to refresh.';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+  if (_isLoading) return;
+  if (refresh) {
+    _posts = [];
+    _hasMore = true;
   }
+  if (!_hasMore) return;
+
+  _isLoading = true;
+  _error = null;
+  notifyListeners();
+
+  try {
+    final snapshot = await _service.feedQuery().get();
+    _posts = snapshot.docs.map((doc) => PostModel.fromFirestore(doc)).toList();
+    _posts.addAll(PostService.mockPosts); // mock posts
+    _hasMore = false;
+  } catch (e) {
+    _error = 'Failed to load posts. Pull to refresh.';
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
 
   // ─── Filtering ─────────────────────────────────────────────────────────────
 
@@ -126,15 +124,13 @@ class PostProvider extends ChangeNotifier {
   // ─── Urgent Tasks ──────────────────────────────────────────────────────────
 
   void _listenUrgentTasks() {
-    // Use mock data during dev
+    //Mock tasks
     _urgentTasks = PostService.mockUrgentTasks;
-    notifyListeners();
-
     // Uncomment when Firestore is live:
-    // _service.urgentTasksStream().listen((tasks) {
-    //   _urgentTasks = tasks;
-    //   notifyListeners();
-    // });
+    _service.urgentTasksStream().listen((tasks) {
+     _urgentTasks = tasks;
+    notifyListeners();
+    });
   }
 
   void toggleUrgentDrawer() {
