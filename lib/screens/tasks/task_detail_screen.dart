@@ -125,11 +125,22 @@ class TaskDetailScreen extends StatelessWidget {
 
   Future<void> _acceptTask(BuildContext context) async {
     final userId = context.read<AuthProvider>().user?.uid ?? '';
+    if (userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to accept tasks'), backgroundColor: AppColors.primary),
+      );
+      return;
+    }
+    
     final success = await context.read<TaskProvider>().acceptTask(task.id, userId);
     if (!context.mounted) return;
     if (success) {
       Navigator.pushReplacement(context,
           MaterialPageRoute(builder: (_) => TaskAcceptedScreen(task: task)));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to accept task. Please try again.'), backgroundColor: Colors.red),
+      );
     }
   }
 
