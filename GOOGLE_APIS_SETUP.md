@@ -33,7 +33,7 @@ This guide covers the complete setup and integration of Google APIs in your Flut
 ```xml
 <meta-data
     android:name="com.google.android.geo.API_KEY"
-    android:value="AIzaSyDW-aB4UajG5t-PKz_lnkr5lDjln3wH6-k"/>
+    android:value="YOUR-API-KEY-HERE"/>
 ```
 
 ### Step 2: Install Dependencies
