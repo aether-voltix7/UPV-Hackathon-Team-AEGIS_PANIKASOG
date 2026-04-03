@@ -9,7 +9,7 @@ import 'screens/auth/landing_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/settings/settings_screen.dart';
-import 'firebase_options.dart'; 
+import 'firebase_options.dart';
 import 'providers/post_provider.dart';
 import 'services/post_service.dart';
 import 'providers/task_provider.dart';
@@ -86,25 +86,46 @@ class _SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        width: double.infinity, height: double.infinity,
+        width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter, end: Alignment.bottomCenter,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: AppColors.splashGradient,
           ),
         ),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(
-            width: 80, height: 80,
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-            child: const Icon(Icons.directions_run, color: Colors.white, size: 44),
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle),
+            child:
+                const Icon(Icons.directions_run, color: Colors.white, size: 44),
           ),
           const SizedBox(height: 16),
-          const Text('PANIKASOG', style: TextStyle(fontFamily: 'Poppins', fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 2)),
+          const Text('PANIKASOG',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 2)),
           const SizedBox(height: 8),
-          Text('Community Disaster Response', style: TextStyle(fontFamily: 'Poppins', fontSize: 13, color: Colors.white.withValues(alpha: 0.8), letterSpacing: 0.5)),
+          Text('Community Disaster Response',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: Colors.white.withValues(alpha: 0.8),
+                  letterSpacing: 0.5)),
           const SizedBox(height: 40),
-          const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)),
+          const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2.5, color: Colors.white)),
         ]),
       ),
     );
