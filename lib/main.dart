@@ -30,7 +30,7 @@ class PanikasogApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider(AuthService())),
+        ChangeNotifierProvider(create: (_) => AuthProvider(AuthService()))
         ChangeNotifierProvider(create: (_) => PostProvider(PostService())),
         ChangeNotifierProvider(create: (_) => TaskProvider(TaskService())),
       ],

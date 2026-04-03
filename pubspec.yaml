@@ -49,13 +49,13 @@ dev_dependencies:
 # app icon
 flutter_icons:
   android: true
-  ios: true
+  ios: false
   image_path: "assets/images/favicon.png"
 
 flutter:
   uses-material-design: true
-  # assets:
-  #   - assets/images/
+  assets:
+    - assets/images/
   #   - assets/icons/
   # fonts:
   #   - family: Poppins
