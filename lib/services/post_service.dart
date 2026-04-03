@@ -210,4 +210,17 @@ class PostService {
           isVerifiedUrgent: true,
         ),
       ];
+
+      // ─── User Posts ───────────────────────────────────────────
+
+    Stream<List<PostModel>> getPostsByUser(String userId) {
+    return _db
+        .collection('posts')
+        .where('authorId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => PostModel.fromFirestore(doc)).toList());
 }
+}
+

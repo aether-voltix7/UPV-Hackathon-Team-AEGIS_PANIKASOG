@@ -4,14 +4,24 @@ import 'package:percent_indicator/percent_indicator.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../models/user_model.dart';
+import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/post_provider.dart';
+import '../../services/post_service.dart';
 import '../../widgets/post_card.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _UserPostsTab extends StatefulWidget {
+  final String userId;
+  const _UserPostsTab({required this.userId});
+
+  @override
+  State<_UserPostsTab> createState() => _UserPostsTabState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
@@ -333,32 +343,48 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
 
 // ─── Post Tab ────────────────────────────────────────────
 
-class _UserPostsTab extends StatelessWidget {
-  final String userId;
-  const _UserPostsTab({required this.userId});
+class _UserPostsTabState extends State<_UserPostsTab> {
+  late Stream<List<PostModel>> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = PostService().getPostsByUser(widget.userId);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final postProvider = context.watch<PostProvider>();
-    final posts = postProvider.posts
-        .where((p) => p.authorId == userId)
-        .toList();
+    return StreamBuilder<List<PostModel>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
+        }
 
-    if (posts.isEmpty) {
-      return const _EmptyTab(label: 'No posts yet', icon: Icons.grid_on_outlined);
-    }
+        final posts = snapshot.data ?? [];
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 16),
-      itemCount: posts.length,
-      itemBuilder: (context, i) {
-        final post = posts[i];
-        return PostCard(
-          post: post,
-          currentUserId: userId,
-          userVote: postProvider.userVoteFor(post.id),
-          onUpvote: () {},
-          onDownvote: () {},
+        if (posts.isEmpty) {
+          return const _EmptyTab(
+            label: 'No posts yet',
+            icon: Icons.grid_on_outlined,
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.only(bottom: 16),
+          itemCount: posts.length,
+          itemBuilder: (context, i) {
+            final post = posts[i];
+            return PostCard(
+              post: post,
+              currentUserId: widget.userId,
+              userVote: null,
+              onUpvote: () {},
+              onDownvote: () {},
+            );
+          },
         );
       },
     );
