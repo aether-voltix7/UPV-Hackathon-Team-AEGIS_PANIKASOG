@@ -9,7 +9,7 @@ class GoogleMapsProvider extends ChangeNotifier {
   final LocationService _locationService = LocationService();
 
   bool _isLoading = false;
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   LatLng? _currentLocation;
   String? _error;
 
