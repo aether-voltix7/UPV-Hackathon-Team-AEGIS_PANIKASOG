@@ -38,27 +38,60 @@ class _ReportsScreenState extends State<ReportsScreen> {
         elevation: 0,
         title: const Text('Reports', style: AppTextStyles.h2),
         actions: [
-          // ... your existing toggle code stays the same
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+                color: AppColors.lightGrey,
+                borderRadius: BorderRadius.circular(20)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              GestureDetector(
+                onTap: () => setState(() => _showMap = false),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: !_showMap ? AppColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Text('List',
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: !_showMap ? AppColors.white : AppColors.hintGrey,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _showMap = true),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: _showMap ? AppColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Text('Map',
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: _showMap ? AppColors.white : AppColors.hintGrey,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ]),
+          ),
         ],
       ),
-      body: StreamBuilder<List<ReportModel>>(
-        stream: _reportsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          final reports = snapshot.data ?? [];
-          if (reports.isEmpty) {
-            return const Center(child: Text('No reports yet.'));
-          }
-          return _showMap
-              ? _MapView(reports: reports)
-              : _ListView(reports: reports);
-        },
-      ),
+        body: StreamBuilder<List<ReportModel>>(
+          stream: _reportsStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            final reports = snapshot.data ?? [];
+            if (reports.isEmpty) {
+              return const Center(child: Text('No reports yet.'));
+            }
+            return _showMap
+                ? _MapView(reports: reports)
+                : _ListView(reports: reports);
+          },
+        ),
     );
   }
 }
