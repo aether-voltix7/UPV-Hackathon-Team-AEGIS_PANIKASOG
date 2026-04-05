@@ -344,18 +344,18 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
 // ─── Post Tab ────────────────────────────────────────────
 
 class _UserPostsTabState extends State<_UserPostsTab> {
-  late Stream<List<PostModel>> _stream;
+  late Future<List<PostModel>> _future;
 
   @override
   void initState() {
     super.initState();
-    _stream = PostService().getPostsByUser(widget.userId);
+    _future = PostService().getPostsByUser(widget.userId);
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<PostModel>>(
-      stream: _stream,
+    return FutureBuilder<List<PostModel>>(
+      future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(

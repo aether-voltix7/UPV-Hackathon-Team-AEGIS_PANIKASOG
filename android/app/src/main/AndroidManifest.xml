@@ -15,7 +15,7 @@
         android:label="PANIKASOG"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic=""
+        android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true">
 
         <!-- Google Maps API Key (replace with your actual key) -->

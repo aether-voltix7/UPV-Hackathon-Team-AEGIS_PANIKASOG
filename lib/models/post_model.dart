@@ -18,6 +18,7 @@ class PostModel {
   final String title;
   final String caption;
   final String? imageUrl;
+  final List<String> imageUrls; // new multi-image field
   final List<String> tags; // e.g. ['Clean-up', 'Trash Collection', 'Beach']
   final PostCategory category;
   final bool isUrgent;
@@ -39,6 +40,7 @@ class PostModel {
     required this.title,
     required this.caption,
     this.imageUrl,
+    this.imageUrls = const [],
     this.tags = const [],
     this.category = PostCategory.community,
     this.isUrgent = false,
@@ -63,6 +65,7 @@ class PostModel {
       title: d['title'] ?? '',
       caption: d['caption'] ?? '',
       imageUrl: d['imageUrl'],
+      imageUrls: List<String>.from(d['imageUrls'] ?? []),
       tags: List<String>.from(d['tags'] ?? []),
       category: _categoryFromString(d['category']),
       isUrgent: d['isUrgent'] ?? false,
@@ -85,6 +88,7 @@ class PostModel {
         'title': title,
         'caption': caption,
         'imageUrl': imageUrl,
+        'imageUrls': imageUrls,
         'tags': tags,
         'category': category.name,
         'isUrgent': isUrgent,
@@ -109,12 +113,12 @@ class PostModel {
     }
   }
 
-  PostModel copyWith({
-    int? upvotes,
-    int? downvotes,
-    int? commentCount,
-  }) =>
-      PostModel(
+    PostModel copyWith({
+      int? upvotes,
+      int? downvotes,
+      int? commentCount,
+      List<String>? imageUrls,
+    }) => PostModel(
         id: id,
         authorId: authorId,
         authorUsername: authorUsername,
@@ -125,6 +129,7 @@ class PostModel {
         title: title,
         caption: caption,
         imageUrl: imageUrl,
+        imageUrls: imageUrls ?? this.imageUrls,
         tags: tags,
         category: category,
         isUrgent: isUrgent,

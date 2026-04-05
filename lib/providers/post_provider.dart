@@ -150,50 +150,47 @@ class PostProvider extends ChangeNotifier {
   // ─── Create Post ───────────────────────────────────────────────────────────
 
   Future<PostModel?> createPost({
-    required String authorId,
-    required String authorUsername,
-    String? authorAvatarUrl,
-    bool authorIsVerified = false,
-    required String barangay,
-    required String city,
-    required String title,
-    required String caption,
-    File? imageFile,
-    required List<String> tags,
-    required PostCategory category,
-  }) async {
-    _isCreatingPost = true;
+  required String authorId,
+  required String authorUsername,
+  String? authorAvatarUrl,
+  bool authorIsVerified = false,
+  required String barangay,
+  required String city,
+  required String title,
+  required String caption,
+  File? imageFile,
+  List<File> imageFiles = const [], // ← receives from screen
+  required List<String> tags,
+  required PostCategory category,
+}) async {
+  _isCreatingPost = true;
+  notifyListeners();
+
+  try {
+    final post = await _service.createPost(
+      authorId: authorId,
+      authorUsername: authorUsername,
+      authorAvatarUrl: authorAvatarUrl,
+      authorIsVerified: authorIsVerified,
+      barangay: barangay,
+      city: city,
+      title: title,
+      caption: caption,
+      imageFile: imageFiles.isNotEmpty ? imageFiles.first : imageFile, // ← use parameter
+      imageFiles: imageFiles, // ← use parameter
+      tags: tags,
+      category: category,
+    );
+    _posts.insert(0, post);
     notifyListeners();
-
-    try {
-      final post = await _service.createPost(
-        authorId: authorId,
-        authorUsername: authorUsername,
-        authorAvatarUrl: authorAvatarUrl,
-        authorIsVerified: authorIsVerified,
-        barangay: barangay,
-        city: city,
-        title: title,
-        caption: caption,
-        imageFile: imageFile,
-        tags: tags,
-        category: category,
-      );
-      _posts.insert(0, post);
-      notifyListeners();
-      return post;
-    } catch (e) {
-      _error = 'Failed to create post. Please try again.';
-      notifyListeners();
-      return null;
-    } finally {
-      _isCreatingPost = false;
-      notifyListeners();
-    }
-  }
-
-  void clearError() {
-    _error = null;
+    return post;
+  } catch (e) {
+    _error = 'Failed to create post. Please try again.';
+    notifyListeners();
+    return null;
+  } finally {
+    _isCreatingPost = false;
     notifyListeners();
   }
+}
 }

@@ -25,7 +25,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _tagCtrl = TextEditingController();
   final _locationCtrl = TextEditingController(text: 'La Paz, Iloilo City');
 
-  File? _selectedImage;
+  List<File> _selectedImages = [];
   PostCategory _selectedCategory = PostCategory.community;
   final List<String> _tags = []; // made final
   bool _isGeneratingCaption = false;
@@ -53,13 +53,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final result = await showModalBottomSheet<XFile?>(
+    final result = await showModalBottomSheet<List<XFile>?>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => _ImageSourceSheet(picker: picker),
     );
-    if (result != null) {
-      setState(() => _selectedImage = File(result.path));
+    if (result != null && result.isNotEmpty) {
+      setState(() => _selectedImages.addAll(result.map((f) => File(f.path))));
     }
   }
 
@@ -104,7 +104,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               : 'Iloilo City',
           title: _titleCtrl.text.trim(),
           caption: _captionCtrl.text.trim(),
-          imageFile: _selectedImage,
+          imageFile: _selectedImages.isNotEmpty ? _selectedImages.first : null,
+          imageFiles: _selectedImages,
           tags: _tags,
           category: _selectedCategory,
         );
@@ -159,65 +160,72 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               // ── Photo picker ───────────────────────────────────────────────
               GestureDetector(
                 onTap: _pickImage,
-                child: _selectedImage != null
-                    ? Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.file(
-                              _selectedImage!,
-                              width: double.infinity,
-                              height: 200,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: GestureDetector(
-                              onTap: () =>
-                                  setState(() => _selectedImage = null),
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
+                child: Column(
+                  children: [
+                    if (_selectedImages.isNotEmpty) ...[
+                      SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _selectedImages.length + 1,
+                          itemBuilder: (context, i) {
+                            if (i == _selectedImages.length) {
+                              return GestureDetector(
+                                onTap: _pickImage,
+                                child: Container(
+                                  width: 120, height: 200,
+                                  margin: const EdgeInsets.only(right: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.lightGrey,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: AppColors.borderGrey),
+                                  ),
+                                  child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                    Icon(Icons.add_photo_alternate_outlined, color: AppColors.hintGrey, size: 32),
+                                    SizedBox(height: 8),
+                                    Text('Add More', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.hintGrey)),
+                                  ]),
                                 ),
-                                child: const Icon(Icons.close,
-                                    color: Colors.white, size: 16),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Container(
-                        width: double.infinity,
-                        height: 140,
+                              );
+                            }
+                            return Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.file(_selectedImages[i], width: 160, height: 200, fit: BoxFit.cover),
+                                ),
+                                Positioned(
+                                  top: 8, right: 8,
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _selectedImages.removeAt(i)),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ] else
+                      Container(
+                        width: double.infinity, height: 140,
                         decoration: BoxDecoration(
                           color: AppColors.lightGrey,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: AppColors.borderGrey,
-                              style: BorderStyle.solid),
+                          border: Border.all(color: AppColors.borderGrey),
                         ),
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.camera_alt_outlined,
-                                color: AppColors.hintGrey, size: 32),
-                            SizedBox(height: 8),
-                            Text(
-                              'Take Photos',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 14,
-                                color: AppColors.hintGrey,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.camera_alt_outlined, color: AppColors.hintGrey, size: 32),
+                          SizedBox(height: 8),
+                          Text('Take Photos', style: TextStyle(fontFamily: 'Poppins', fontSize: 14, color: AppColors.hintGrey, fontWeight: FontWeight.w500)),
+                        ]),
                       ),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -630,21 +638,19 @@ class _ImageSourceSheet extends StatelessWidget {
                 icon: Icons.camera_alt_outlined,
                 label: 'Camera',
                 onTap: () async {
-                  final f = await picker.pickImage(
-                      source: ImageSource.camera, imageQuality: 85);
-                  if (!context.mounted) return;
-                  Navigator.pop(context, f);
-                },
+                final f = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+                if (!context.mounted) return;
+                Navigator.pop(context, f != null ? [f] : null);
+              },
               ),
               _SourceOption(
                 icon: Icons.photo_library_outlined,
                 label: 'Gallery',
                 onTap: () async {
-                  final f = await picker.pickImage(
-                      source: ImageSource.gallery, imageQuality: 85);
-                  if (!context.mounted) return; // fixed async gap
-                  Navigator.pop(context, f);
-                },
+                final files = await picker.pickMultiImage(imageQuality: 85);
+                if (!context.mounted) return;
+                Navigator.pop(context, files);
+              },
               ),
             ],
           ),
