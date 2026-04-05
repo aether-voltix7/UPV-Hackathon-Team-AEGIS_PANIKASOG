@@ -10,8 +10,11 @@ class PostProvider extends ChangeNotifier {
   final PostService _service;
 
   PostProvider(this._service) {
+    _urgentTasks = PostService.mockUrgentTasks;
     _listenUrgentTasks();
   }
+
+  
 
   // ─── Feed state ────────────────────────────────────────────────────────────
   List<PostModel> _posts = [];
@@ -22,7 +25,7 @@ class PostProvider extends ChangeNotifier {
 
   // ─── Urgent Tasks state ────────────────────────────────────────────────────
   List<UrgentTaskModel> _urgentTasks = [];
-  bool _urgentDrawerExpanded = false;
+  bool _urgentDrawerExpanded = true;
 
   // ─── Create post state ─────────────────────────────────────────────────────
   bool _isCreatingPost = false;
@@ -123,13 +126,19 @@ class PostProvider extends ChangeNotifier {
 
   // ─── Urgent Tasks ──────────────────────────────────────────────────────────
 
-  void _listenUrgentTasks() {
-    //Mock tasks
-    _urgentTasks = PostService.mockUrgentTasks;
-    // Uncomment when Firestore is live:
+    void _listenUrgentTasks() {
     _service.urgentTasksStream().listen((tasks) {
-     _urgentTasks = tasks;
-    notifyListeners();
+      final mockIds = PostService.mockUrgentTasks.map((t) => t.id).toSet();
+      final liveIds = tasks.map((t) => t.id).toSet();
+      _urgentTasks = [
+        ...tasks,
+        // only add mocks that don't clash with live data
+        ...PostService.mockUrgentTasks.where((t) => !liveIds.contains(t.id)),
+      ];
+      notifyListeners();
+    }, onError: (e) {
+      _urgentTasks = PostService.mockUrgentTasks;
+      notifyListeners();
     });
   }
 

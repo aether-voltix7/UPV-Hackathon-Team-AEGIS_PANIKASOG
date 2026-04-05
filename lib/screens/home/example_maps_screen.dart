@@ -17,7 +17,7 @@ class _ExampleMapsScreenState extends State<ExampleMapsScreen> {
   final GoogleMapsService _mapsService = GoogleMapsService();
   final LocationService _locationService = LocationService();
 
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   LatLng _userLocation = const LatLng(14.5995, 120.9842); // Default: Manila
   String _currentAddress = 'Loading...';
   bool _isLoading = true;

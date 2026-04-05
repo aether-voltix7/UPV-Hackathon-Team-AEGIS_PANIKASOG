@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/task_model.dart';
+import '../tasks/task_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
@@ -220,8 +223,37 @@ class _HomeBody extends StatelessWidget {
             tasks: postProvider.urgentTasks,
             isExpanded: postProvider.urgentDrawerExpanded,
             onToggle: postProvider.toggleUrgentDrawer,
-            onTaskTap: (task) =>
-                Navigator.pushNamed(context, '/tasks/${task.id}'),
+            onTaskTap: (task) async {
+              // First try Firestore
+              final doc = await FirebaseFirestore.instance
+                  .collection('tasks')
+                  .doc(task.taskId)
+                  .get();
+              if (!context.mounted) return;
+
+              TaskModel? fullTask;
+              if (doc.exists) {
+                fullTask = TaskModel.fromFirestore(doc);
+              } else {
+                // Fall back to mock tasks (for development)
+                fullTask = TaskModel.mockTasks
+                    .where((t) => t.id == task.taskId)
+                    .firstOrNull;
+              }
+
+              if (fullTask != null && context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TaskDetailScreen(task: fullTask!),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Task details not found.')),
+                );
+              }
+            },
           ),
         ),
       ],

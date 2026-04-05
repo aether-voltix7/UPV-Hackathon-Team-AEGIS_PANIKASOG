@@ -4,6 +4,7 @@ enum UrgencyLevel { urgent, high, medium }
 
 class UrgentTaskModel {
   final String id;
+  final String taskId;
   final String title;
   final String barangay;
   final String city;
@@ -19,6 +20,7 @@ class UrgentTaskModel {
 
   const UrgentTaskModel({
     required this.id,
+    required this.taskId,
     required this.title,
     required this.barangay,
     required this.city,
@@ -37,6 +39,7 @@ class UrgentTaskModel {
     final d = doc.data() as Map<String, dynamic>;
     return UrgentTaskModel(
       id: doc.id,
+      taskId: d['taskId'] ?? doc.id,
       title: d['title'] ?? '',
       barangay: d['barangay'] ?? '',
       city: d['city'] ?? '',
@@ -45,7 +48,9 @@ class UrgentTaskModel {
       points: d['points'] ?? 0,
       volunteersNeeded: d['volunteersNeeded'] ?? 10,
       volunteersAccepted: d['volunteersAccepted'] ?? 0,
-      scheduledAt: (d['scheduledAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      scheduledAt: (d['scheduledStart'] as Timestamp?)?.toDate() ?? 
+                   (d['scheduledAt'] as Timestamp?)?.toDate() ?? 
+                   DateTime.now(), // ← reads scheduledStart, falls back to scheduledAt
       urgency: _urgencyFromString(d['urgency']),
       urgentReasons: List<String>.from(d['urgentReasons'] ?? []),
       isVerifiedUrgent: d['isVerifiedUrgent'] ?? false,
@@ -64,6 +69,7 @@ class UrgentTaskModel {
   }
 
   Map<String, dynamic> toFirestore() => {
+        'taskId': taskId,
         'title': title,
         'barangay': barangay,
         'city': city,
