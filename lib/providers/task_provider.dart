@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/task_model.dart';
 import '../services/task_service.dart';
+import '../services/user_progress_service.dart';
 
 class TaskProvider extends ChangeNotifier {
   final TaskService _service;
@@ -60,6 +61,7 @@ class TaskProvider extends ChangeNotifier {
 
     try {
       await _service.acceptTask(taskId, userId);
+      await UserProgressService().incrementJobsTaken(userId);
     } catch (_) {}
 
     _tasks[idx] = _tasks[idx].copyWith(
@@ -71,6 +73,7 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
     return true;
   }
+  
 
   // ─── Start Timer ───────────────────────────────────────────────────────────
   void startTimer() {
@@ -108,8 +111,9 @@ class TaskProvider extends ChangeNotifier {
   }
 
   // ─── Submit Verification ───────────────────────────────────────────────────
-  Future<bool> submitVerification({
+    Future<bool> submitVerification({
     required String taskId,
+    required String userId, // ← add this
     required String note,
     List<String> photos = const [],
   }) async {
@@ -120,6 +124,13 @@ class TaskProvider extends ChangeNotifier {
       await _service.submitVerification(
           taskId: taskId, note: note, photos: photos);
     } catch (_) {}
+
+    final task = _tasks[idx];
+    await UserProgressService().awardTaskCompletion(
+      userId: userId, // ← now correct
+      pointsEarned: task.points,
+      expEarned: (task.points * 1.5).round(),
+    );
 
     _tasks[idx] = _tasks[idx].copyWith(
       status: TaskStatus.verified,

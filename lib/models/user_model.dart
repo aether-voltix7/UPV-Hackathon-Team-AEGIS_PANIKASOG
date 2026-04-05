@@ -17,6 +17,7 @@ class UserModel {
   final String? avatarUrl;
   final String level;
   final int levelProgress; // 0–100
+  final int exp;
   final DateTime dateJoined;
   final List<String> badges;
 
@@ -37,6 +38,7 @@ class UserModel {
     this.avatarUrl,
     this.level = 'Community Member',
     this.levelProgress = 0,
+    this.exp = 0,
     required this.dateJoined,
     this.badges = const [],
   });
@@ -60,6 +62,7 @@ class UserModel {
       avatarUrl: data['avatarUrl'],
       level: data['level'] ?? 'Community Member',
       levelProgress: data['levelProgress'] ?? 0,
+      exp: data['exp'] ?? 0,
       dateJoined: (data['dateJoined'] as Timestamp?)?.toDate() ?? DateTime.now(),
       badges: List<String>.from(data['badges'] ?? []),
     );
@@ -82,6 +85,7 @@ class UserModel {
       'avatarUrl': avatarUrl,
       'level': level,
       'levelProgress': levelProgress,
+      'exp': exp,
       'dateJoined': Timestamp.fromDate(dateJoined),
       'badges': badges,
     };
@@ -103,6 +107,7 @@ class UserModel {
     String? avatarUrl,
     String? level,
     int? levelProgress,
+    int? exp,
     List<String>? badges,
   }) {
     return UserModel(
@@ -122,6 +127,7 @@ class UserModel {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       level: level ?? this.level,
       levelProgress: levelProgress ?? this.levelProgress,
+      exp: exp ?? this.exp,
       dateJoined: dateJoined,
       badges: badges ?? this.badges,
     );

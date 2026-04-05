@@ -522,15 +522,18 @@ class _TaskVerificationScreenState extends State<TaskVerificationScreen> {
   }
 
   Future<void> _submit(BuildContext context) async {
-    setState(() => _submitting = true);
-    await context.read<TaskProvider>().submitVerification(
-      taskId: widget.task.id,
-      note: _noteCtrl.text.trim(),
-    );
-    setState(() => _submitting = false);
-    if (!context.mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => TaskRewardsScreen(task: widget.task)));
-  }
+  setState(() => _submitting = true);
+  final userId = context.read<AuthProvider>().user?.uid ?? '';
+  await context.read<TaskProvider>().submitVerification(
+    taskId: widget.task.id,
+    userId: userId,
+    note: _noteCtrl.text.trim(),
+  );
+  await context.read<AuthProvider>().refreshUser();
+  setState(() => _submitting = false);
+  if (!context.mounted) return;
+  Navigator.push(context, MaterialPageRoute(builder: (_) => TaskRewardsScreen(task: widget.task)));
+}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
