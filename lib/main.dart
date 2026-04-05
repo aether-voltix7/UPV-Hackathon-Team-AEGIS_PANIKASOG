@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'core/constants/colors.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
@@ -19,12 +21,20 @@ import 'providers/google_maps_provider.dart';
 import 'screens/home/example_maps_screen.dart';
 import 'screens/auth/google_sign_in_example.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // ← UNCOMMENT this line
+    options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Fix "unknown calling package" SecurityException
+  final GoogleMapsFlutterPlatform mapsImplementation =
+      GoogleMapsFlutterPlatform.instance;
+
+  if (mapsImplementation is GoogleMapsFlutterAndroid) {
+    // Forces  app to register its package name correctly with Google Play Services
+    await mapsImplementation.initializeWithRenderer(AndroidMapRenderer.latest);
+  }
+
   runApp(const PanikasogApp());
 }
 

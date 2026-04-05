@@ -18,10 +18,14 @@
         android:usesCleartextTraffic="false"
         android:enableOnBackInvokedCallback="true">
 
-        <!-- Google Maps API Key (replace with your actual key) -->
+        <!-- Google Maps API Key (restrict to Android apps) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_GOOGLE_MAPS_API_KEY"/>
+            android:value="AIzaSyBui_6GHiv4pw4Q8oXBFMWj2f1QfFmqiZ0"/>
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
 
         <!-- Flutter Activity -->
         <activity

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:io';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
@@ -82,53 +83,46 @@ class _MapView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      Container(
-        color: const Color(0xFFE8EAF6),
-        child: const Center(
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.map_outlined, size: 80, color: AppColors.borderGrey),
-          SizedBox(height: 12),
-          Text('Google Maps will appear here\nafter adding your API key',
-              style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
-        ])),
+    // first, ReportModel list is converted to Google Map Markers
+    final Set<Marker> markers = reports
+        .where((report) =>
+            report.latitude != null &&
+            report.longitude !=
+                null) // filter reports that actually have coordinates to avoid crashes
+        .map((report) {
+      return Marker(
+        markerId: MarkerId(report.id),
+        position: LatLng(report.latitude!, report.longitude!),
+
+        // adds a popup when pin is tapped
+        infoWindow: InfoWindow(
+          title: report.hazardSubcategory,
+          snippet: '${report.barangay}, ${report.city}',
+        ),
+
+        // Color coding: Green for verified, Red/Orange for pending
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+          report.status == ReportStatus.verified
+              ? BitmapDescriptor.hueGreen
+              : BitmapDescriptor.hueOrange,
+        ),
+      );
+    }).toSet();
+
+    return GoogleMap(
+      initialCameraPosition: const CameraPosition(
+        target: LatLng(10.7202, 122.5621), // Defaults to Iloilo City
+        zoom: 14,
       ),
-      // Report pins overlay
-      ...reports.map((r) => Positioned(
-            top: 80 + (reports.indexOf(r) * 60.0),
-            left: 80 + (reports.indexOf(r) * 40.0),
-            child: GestureDetector(
-              onTap: () {},
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: r.status == ReportStatus.verified
-                      ? AppColors.success
-                      : AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 6)
-                  ],
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.location_on,
-                      color: AppColors.white, size: 14),
-                  const SizedBox(width: 4),
-                  Text(
-                      r.hazardSubcategory.length > 12
-                          ? '${r.hazardSubcategory.substring(0, 12)}...'
-                          : r.hazardSubcategory,
-                      style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.white, fontWeight: FontWeight.w600)),
-                ]),
-              ),
-            ),
-          )),
-    ]);
+      markers: markers, // 2. Pass the markers here
+      myLocationEnabled: true,
+      myLocationButtonEnabled: true,
+      mapToolbarEnabled: true,
+      zoomControlsEnabled: false, // Cleaner UI for mobile
+      onMapCreated: (GoogleMapController controller) {
+        // You can save the controller if you want to animate to specific pins later
+      },
+    );
   }
 }
 
