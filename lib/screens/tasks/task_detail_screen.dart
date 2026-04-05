@@ -529,6 +529,7 @@ class _TaskVerificationScreenState extends State<TaskVerificationScreen> {
     userId: userId,
     note: _noteCtrl.text.trim(),
   );
+  await context.read<AuthProvider>().refreshUser();
   setState(() => _submitting = false);
   if (!context.mounted) return;
   Navigator.push(context, MaterialPageRoute(builder: (_) => TaskRewardsScreen(task: widget.task)));
