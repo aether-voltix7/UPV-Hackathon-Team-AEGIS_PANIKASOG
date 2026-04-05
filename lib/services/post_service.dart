@@ -137,7 +137,7 @@ class PostService {
         .collection('tasks')
         .where('isUrgent', isEqualTo: true)
         .where('status', isEqualTo: 'open')
-        .orderBy('scheduledAt')
+        .orderBy('scheduledStart') // ← matches TaskModel field name
         .limit(10)
         .snapshots()
         .map((snap) => snap.docs
@@ -193,6 +193,7 @@ class PostService {
   static List<UrgentTaskModel> get mockUrgentTasks => [
         UrgentTaskModel(
           id: 'utask_1',
+          taskId: 'task_1',
           title: 'Medical Assistance for Injured Individuals...',
           barangay: 'Brgy. Rizal',
           city: 'Iloilo City',
