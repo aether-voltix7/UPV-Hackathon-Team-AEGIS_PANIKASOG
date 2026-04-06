@@ -96,17 +96,36 @@ class TaskService {
 
   // ─── Submit Verification ───────────────────────────────────────────────────
 
-  Future<void> submitVerification({
-    required String taskId,
-    required String note,
-    List<String> photos = const [],
-  }) async {
-    await _db.collection('tasks').doc(taskId).update({
-      'status': TaskStatus.verified.name,
-      'verificationNote': note,
-      'verificationPhotos': photos,
+Future<void> submitVerification({
+  required String taskId,
+  required String note,
+  List<String> photos = const [],
+}) async {
+  final taskRef = _db.collection('tasks').doc(taskId);
+
+  final taskSnap = await taskRef.get();
+  if (!taskSnap.exists) return;
+
+  final taskData = taskSnap.data()!;
+  final userId = taskData['acceptedBy'];
+  final points = taskData['points'] ?? 0;
+
+  // Update task first
+  await taskRef.update({
+    'status': TaskStatus.verified.name,
+    'verificationNote': note,
+    'verificationPhotos': photos,
+  });
+
+  // Then update user points
+  if (userId != null) {
+    final userRef = _db.collection('users').doc(userId);
+    await userRef.update({
+      'points': FieldValue.increment(points),
+      'jobsFinished': FieldValue.increment(1),
     });
   }
+}
 
   // ─── Cancel Task ──────────────────────────────────────────────────────────
 

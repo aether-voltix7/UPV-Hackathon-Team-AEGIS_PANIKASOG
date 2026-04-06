@@ -31,7 +31,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _locationCtrl = TextEditingController(text: 'La Paz, Iloilo City');
   bool _showMap = false;
 
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
   PostCategory _selectedCategory = PostCategory.community;
   final List<String> _tags = []; // made final
   bool _isGeneratingCaption = false;
