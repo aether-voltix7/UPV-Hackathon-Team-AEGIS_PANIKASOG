@@ -94,17 +94,23 @@ class _AppTextFieldState extends State<AppTextField> {
             prefixStyle: AppTextStyles.inputText,
             prefixIcon: widget.prefixIcon,
             suffixIcon: widget.isPassword
-                ? GestureDetector(
-                    onTap: () => setState(() => _obscureText = !_obscureText),
-                    child: Icon(
+                ? IconButton(
+                    icon: Icon(
                       _obscureText
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
                       color: AppColors.hintGrey,
                       size: 20,
                     ),
+                    onPressed: () =>
+                        setState(() => _obscureText = !_obscureText),
                   )
-                : widget.suffixIcon,
+                : widget.suffixIcon != null
+                    ? Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: widget.suffixIcon,
+                      )
+                    : null,
           ),
         ),
       ],
@@ -140,8 +146,10 @@ class AppSearchField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: AppTextStyles.inputHint,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        prefixIcon: const Icon(Icons.search, color: AppColors.hintGrey, size: 20),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        prefixIcon:
+            const Icon(Icons.search, color: AppColors.hintGrey, size: 20),
         suffixIcon: const Icon(Icons.tune, color: AppColors.hintGrey, size: 20),
         filled: true,
         fillColor: AppColors.lightGrey,

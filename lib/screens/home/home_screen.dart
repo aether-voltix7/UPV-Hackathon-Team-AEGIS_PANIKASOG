@@ -9,11 +9,59 @@ import '../../providers/post_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/urgent_tasks_drawer.dart';
-import 'post_detail_screen.dart';
-import '../../models/urgent_task_model.dart';
+import '../../widgets/vote_dialog.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final ScrollController _scrollCtrl = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PostProvider>().loadFeed(refresh: true);
+    });
+    _scrollCtrl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollCtrl.position.pixels >=
+        _scrollCtrl.position.maxScrollExtent - 200) {
+      context.read<PostProvider>().loadFeed();
+    }
+  }
+
+  Future<void> _handleVote(
+      BuildContext context, PostModel post, String voteType) async {
+    final authProvider = context.read<AuthProvider>();
+    final userId = authProvider.user?.uid;
+    if (userId == null) return;
+
+    final confirmed = await showVoteDialog(
+      context: context,
+      post: post,
+      voteType: voteType,
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<PostProvider>().vote(
+            postId: post.id,
+            userId: userId,
+            voteType: voteType,
+          );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -55,54 +55,47 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightGrey,
-      body: Stack(children: [
-        IndexedStack(index: _selectedIndex, children: _screens),
-        if (_fabMenuOpen)
-          GestureDetector(
-            onTap: _closeFab,
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.55),
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 90),
-                  child: ScaleTransition(
-                    scale: _fabScale,
-                    child: _FabMenu(
-                      onClose: _closeFab,
-                      onCreatePost: () {
-                        _closeFab();
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CreatePostScreen()));
-                      },
-                      onCreateTask: () {
-                        _closeFab();
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateTaskScreen()));
-                      },
-                      onCreateReport: () {
-                        _closeFab();
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReportScreen()));
-                      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => PostProvider(PostService())),
+        ChangeNotifierProvider(create: (_) => TaskProvider(TaskService())),
+      ],
+      child: Builder(builder: (ctx) => Scaffold(
+        backgroundColor: AppColors.lightGrey,
+        body: Stack(children: [
+          IndexedStack(index: _selectedIndex, children: _screens),
+          if (_fabMenuOpen)
+            GestureDetector(
+              onTap: _closeFab,
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.55),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 90),
+                    child: ScaleTransition(
+                      scale: _fabScale,
+                      child: _FabMenu(
+                        onClose: _closeFab,
+                        onCreatePost: () { _closeFab(); Navigator.push(ctx, MaterialPageRoute(builder: (_) => const CreatePostScreen())); },
+                        onCreateTask: () { _closeFab(); Navigator.push(ctx, MaterialPageRoute(builder: (_) => const CreateTaskScreen())); },
+                        onCreateReport: () { _closeFab(); Navigator.push(ctx, MaterialPageRoute(builder: (_) => const CreateReportScreen())); },
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-      ]),
-      bottomNavigationBar: _BottomBar(
-        selectedIndex: _selectedIndex,
-        fabOpen: _fabMenuOpen,
-        onTap: (i) {
-          if (i == 2) {
-            _toggleFab();
-          } else {
-            _closeFab();
-            setState(() => _selectedIndex = i);
-          }
-        },
-      ),
+        ]),
+        bottomNavigationBar: _BottomBar(
+          selectedIndex: _selectedIndex,
+          fabOpen: _fabMenuOpen,
+          onTap: (i) {
+            if (i == 2) { _toggleFab(); }
+            else { _closeFab(); setState(() => _selectedIndex = i); }
+          },
+        ),
+      )),
     );
   }
 }

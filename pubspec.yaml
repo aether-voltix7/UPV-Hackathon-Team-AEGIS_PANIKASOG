@@ -27,6 +27,8 @@ dependencies:
 
   # Maps & Location
   google_maps_flutter: ^2.12.0
+  google_maps_flutter_android: ^2.14.1
+  google_maps_flutter_platform_interface: ^2.8.0
   geolocator: ^14.0.2
   geocoding: ^4.0.0
   permission_handler: 12.0.1

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
@@ -23,7 +25,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _captionCtrl = TextEditingController();
   final _categoryCtrl = TextEditingController();
   final _tagCtrl = TextEditingController();
+  final _locationFocus = FocusNode();
+
+  GoogleMapController? _mapController;
   final _locationCtrl = TextEditingController(text: 'La Paz, Iloilo City');
+  bool _showMap = false;
 
   List<File> _selectedImages = [];
   PostCategory _selectedCategory = PostCategory.community;
@@ -42,12 +48,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // 2. Listen for when the user clicks the text field
+    _locationFocus.addListener(() {
+      setState(() {
+        _showMap = _locationFocus.hasFocus;
+      });
+    });
+  }
+
+  @override
   void dispose() {
     _titleCtrl.dispose();
     _captionCtrl.dispose();
     _categoryCtrl.dispose();
     _tagCtrl.dispose();
     _locationCtrl.dispose();
+    _locationFocus.dispose();
     super.dispose();
   }
 
@@ -121,6 +139,54 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
+// auto-detect current location
+  Future<void> _handleLocationDetection() async {
+    try {
+      // 1. Check if GPS service is actually ON
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        // Prompt user to turn on GPS
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+                  Text('Please enable location services in your settings.')),
+        );
+        return;
+      }
+
+      // 2. Handle Permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        // User has permanently denied, they'll need to go to app settings
+        return;
+      }
+
+      // 3. Get Position
+      _locationCtrl.text = "Detecting..."; // Show loading state
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // 4. Update UI
+      setState(() {
+        _locationCtrl.text =
+            "${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";
+
+        // Update Map's camera to jump to the user's location
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
+        );
+      });
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final postProvider = context.watch<PostProvider>();
@@ -135,20 +201,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               color: AppColors.primary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: const BoxDecoration(
-                  color: AppColors.chipBg, shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_back_ios_new,
-                  size: 14, color: AppColors.primary),
-            ),
-            const SizedBox(width: 8),
-            const Text('Create a Post', style: AppTextStyles.h2),
-          ],
-        ),
+        title: const Text('Create a Post', style: AppTextStyles.h2),
       ),
       body: Form(
         key: _formKey,
@@ -349,15 +402,44 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               const SizedBox(height: 16),
 
               // ── Location ───────────────────────────────────────────────────
+
               AppTextField(
+                focusNode: _locationFocus,
                 label: 'Location (Auto-detected)',
-                hint: 'Detecting...',
                 controller: _locationCtrl,
                 readOnly: false,
-                suffixIcon: const Icon(Icons.gps_fixed,
-                    color: AppColors.primary, size: 18),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.gps_fixed,
+                      color: AppColors.primary, size: 18),
+                  onPressed: _handleLocationDetection,
+                ),
               ),
-              const SizedBox(height: 28),
+
+              const SizedBox(height: 10), // Reduced height to keep map close
+
+              if (_showMap)
+                Container(
+                  height: 250,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderGrey),
+                  ),
+                  child: ClipRRect(
+                    // Rounds the corners of the map
+                    borderRadius: BorderRadius.circular(12),
+                    child: GoogleMap(
+                      initialCameraPosition: const CameraPosition(
+                        target: LatLng(10.7202, 122.5621),
+                        zoom: 14,
+                      ),
+                      onMapCreated: (controller) => _mapController = controller,
+                      myLocationEnabled: true,
+                      zoomControlsEnabled: false,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 28), // Space after the map/field
 
               // ── Submit ─────────────────────────────────────────────────────
               AppButton(
