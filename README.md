@@ -1,7 +1,6 @@
 # PANIKASOG – Community Disaster Response App
 
-> **Bisaya for "Run/Flee"** — a mobile platform empowering communities to respond,
-> report, and recover together during disasters.
+Panikasog (Hiligaynon for "relentless") is a community-centric mobile platform designed to shift the disaster paradigm from reactive emergency response to proactive environmental stewardship. By gamifying civic duties—like clearing drainage to prevent Iloilo's frequent flash floods—we turn disaster prevention into a rewarding daily habit.
 
 ---
 
