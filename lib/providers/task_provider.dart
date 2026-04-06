@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/task_model.dart';
 import '../services/task_service.dart';
 
@@ -30,9 +29,17 @@ class TaskProvider extends ChangeNotifier {
   List<TaskModel> get openTasks =>
       _tasks.where((t) => t.status == TaskStatus.open).toList();
 
-  List<TaskModel> get myTasks => _tasks.where((t) => t.acceptedBy == _currentUserId).toList();
+  // FIX: Use acceptedByList (array) instead of single acceptedBy string.
+  //      Previously, any task where acceptedBy == userId showed for EVERY
+  //      user, because the field was overwritten per acceptance, not appended.
+  List<TaskModel> get myTasks => _currentUserId == null
+      ? []
+      : _tasks
+          .where((t) => t.isAcceptedBy(_currentUserId!))
+          .toList();
 
   void setCurrentUser(String userId) {
+    if (_currentUserId == userId) return;
     _currentUserId = userId;
     notifyListeners();
   }
@@ -44,7 +51,13 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final firestoreTasks = await _service.getTasks();
-      _tasks = [...firestoreTasks, ...TaskModel.mockTasks];
+      // Only add mock tasks that don't already exist in Firestore results
+      // (prevents duplicate IDs causing wrong status display).
+      final firestoreIds = firestoreTasks.map((t) => t.id).toSet();
+      final uniqueMocks = TaskModel.mockTasks
+          .where((t) => !firestoreIds.contains(t.id))
+          .toList();
+      _tasks = [...firestoreTasks, ...uniqueMocks];
     } catch (e) {
       _tasks = TaskModel.mockTasks;
       _error = 'Failed to load tasks.';
@@ -58,15 +71,25 @@ class TaskProvider extends ChangeNotifier {
     if (_tasks.isEmpty) await loadTasks();
     final idx = _tasks.indexWhere((t) => t.id == taskId);
     if (idx == -1) return false;
+
+    // Prevent double-accepting.
+    if (_tasks[idx].isAcceptedBy(userId)) return true;
+
     try {
       await _service.acceptTask(taskId, userId);
-    } catch (_) {}
-    _tasks[idx] = _tasks[idx].copyWith(
-      status: TaskStatus.accepted,
-      acceptedBy: userId,
+    } catch (e) {
+      _error = 'Failed to accept task. Please try again.';
+      notifyListeners();
+      return false;
+    }
+
+    final updated = _tasks[idx].copyWith(
+      acceptedByList: [..._tasks[idx].acceptedByList, userId],
       acceptedAt: DateTime.now(),
+      volunteersAccepted: _tasks[idx].volunteersAccepted + 1,
     );
-    _activeTask = _tasks[idx];
+    _tasks[idx] = updated;
+    _activeTask = updated;
     notifyListeners();
     return true;
   }
@@ -87,21 +110,18 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> completeTask(String taskId, String userId, int points) async {
+  // FIX: completeTask no longer touches user points.
+  //      Points are awarded ONLY in submitVerification (via TaskService →
+  //      UserProgressService) to prevent double-counting.
+  Future<void> completeTask(String taskId) async {
     pauseTimer();
     final idx = _tasks.indexWhere((t) => t.id == taskId);
     if (idx == -1) return;
     try {
       await _service.completeTask(taskId);
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'points': FieldValue.increment(points),
-        'jobsFinished': FieldValue.increment(1),
-      });
     } catch (_) {}
-    _tasks[idx] = _tasks[idx].copyWith(
-      status: TaskStatus.completed,
-      completedAt: DateTime.now(),
-    );
+    _tasks[idx] =
+        _tasks[idx].copyWith(status: TaskStatus.completed, completedAt: DateTime.now());
     _activeTask = _tasks[idx];
     notifyListeners();
   }
@@ -113,14 +133,17 @@ class TaskProvider extends ChangeNotifier {
     required String note,
     List<String> photos = const [],
   }) async {
+    pauseTimer();
     final idx = _tasks.indexWhere((t) => t.id == taskId);
     if (idx == -1) return false;
     try {
-      await _service.submitVerification(taskId: taskId, note: note, photos: photos);
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'points': FieldValue.increment(taskPoints),
-        'jobsFinished': FieldValue.increment(1),
-      });
+      // Points awarded atomically inside TaskService.submitVerification()
+      await _service.submitVerification(
+        taskId: taskId,
+        userId: userId,
+        note: note,
+        photos: photos,
+      );
     } catch (_) {}
 
     _tasks[idx] = _tasks[idx].copyWith(

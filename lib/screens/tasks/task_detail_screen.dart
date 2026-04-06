@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart' as geo;
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../models/task_model.dart';
@@ -26,6 +27,8 @@ class TaskDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOpen = task.status == TaskStatus.open;
+    final userId = context.watch<AuthProvider>().user?.uid ?? '';
+    final alreadyAccepted = task.isAcceptedBy(userId);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -41,6 +44,7 @@ class TaskDetailScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Hero image / placeholder
           Container(
             width: double.infinity,
             height: 200,
@@ -50,25 +54,23 @@ class TaskDetailScreen extends StatelessWidget {
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                        Icon(_categoryIcon(task.category),
-                            size: 64, color: AppColors.borderGrey),
-                        const SizedBox(height: 8),
-                        Text(task.categoryLabel,
-                            style: AppTextStyles.bodySmall),
-                      ]),
+                      Icon(_categoryIcon(task.category),
+                          size: 64, color: AppColors.borderGrey),
+                      const SizedBox(height: 8),
+                      Text(task.categoryLabel, style: AppTextStyles.bodySmall),
+                    ],
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Tags
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Wrap(
                   spacing: 6,
                   children: task.tags.map((t) => _TagChip(label: t)).toList()),
               const SizedBox(height: 12),
               Text(task.title, style: AppTextStyles.h1),
               const SizedBox(height: 8),
-
-              // Location & time
               _InfoRow(
                   icon: Icons.location_on_outlined,
                   text: '${task.barangay}, ${task.city}'),
@@ -109,7 +111,26 @@ class TaskDetailScreen extends StatelessWidget {
               const SizedBox(height: 6),
               Text(task.description, style: AppTextStyles.bodyMedium),
               const SizedBox(height: 28),
-              if (isOpen) ...[
+
+              // Action buttons
+              if (alreadyAccepted) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => TaskProgressScreen(task: task))),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28))),
+                    child: const Text('Continue Task',
+                        style: AppTextStyles.labelLarge),
+                  ),
+                ),
+              ] else if (isOpen) ...[
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -138,7 +159,7 @@ class TaskDetailScreen extends StatelessWidget {
                             .copyWith(color: AppColors.primary)),
                   ),
                 ),
-              ] else
+              ] else ...[
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -155,6 +176,7 @@ class TaskDetailScreen extends StatelessWidget {
                         style: AppTextStyles.labelLarge),
                   ),
                 ),
+              ],
             ]),
           ),
         ]),
@@ -165,14 +187,11 @@ class TaskDetailScreen extends StatelessWidget {
   Future<void> _acceptTask(BuildContext context) async {
     final userId = context.read<AuthProvider>().user?.uid ?? '';
     if (userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please login to accept tasks'),
-            backgroundColor: AppColors.primary),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please login to accept tasks'),
+          backgroundColor: AppColors.primary));
       return;
     }
-
     final success =
         await context.read<TaskProvider>().acceptTask(task.id, userId);
     if (!context.mounted) return;
@@ -180,17 +199,14 @@ class TaskDetailScreen extends StatelessWidget {
       Navigator.pushReplacement(context,
           MaterialPageRoute(builder: (_) => TaskAcceptedScreen(task: task)));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Failed to accept task. Please try again.'),
-            backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Failed to accept task. Please try again.'),
+          backgroundColor: Colors.red));
     }
   }
 
-  void _navigateToMap(BuildContext context) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => TaskMapScreen(task: task)));
-  }
+  void _navigateToMap(BuildContext context) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => TaskMapScreen(task: task)));
 
   IconData _categoryIcon(TaskCategory cat) {
     switch (cat) {
@@ -252,7 +268,6 @@ class TaskAcceptedScreen extends StatelessWidget {
               style: AppTextStyles.bodySmall,
               textAlign: TextAlign.center),
           const SizedBox(height: 32),
-
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -268,11 +283,11 @@ class TaskAcceptedScreen extends StatelessWidget {
                   text: '${task.barangay}, ${task.city}'),
               const SizedBox(height: 4),
               _InfoRow(
-                  icon: Icons.star_outline, text: '${task.points} pts reward'),
+                  icon: Icons.star_outline,
+                  text: '${task.points} pts reward'),
             ]),
           ),
           const Spacer(),
-
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -285,7 +300,8 @@ class TaskAcceptedScreen extends StatelessWidget {
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28))),
-              child: const Text('View on Map', style: AppTextStyles.labelLarge),
+              child:
+                  const Text('View on Map', style: AppTextStyles.labelLarge),
             ),
           ),
         ]),
@@ -300,6 +316,80 @@ class TaskAcceptedScreen extends StatelessWidget {
 class TaskNavigateScreen extends StatelessWidget {
   final TaskModel task;
   const TaskNavigateScreen({super.key, required this.task});
+
+  // FIX: Check-in now verifies the user is within 50 metres of the task
+  //      location before proceeding to the progress/timer screen.
+  Future<void> _checkIn(BuildContext context) async {
+    // If task has no coordinates, skip proximity check.
+    if (task.latitude == null || task.longitude == null) {
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => TaskProgressScreen(task: task)));
+      return;
+    }
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Please enable location services to check in.')));
+        }
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text(
+                  'Location permission required. Please enable in settings.')));
+        }
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+          locationSettings:
+              const LocationSettings(accuracy: LocationAccuracy.high));
+
+      final distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        task.latitude!,
+        task.longitude!,
+      );
+
+      if (!context.mounted) return;
+
+      if (distance <= 50) {
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => TaskProgressScreen(task: task)));
+      } else {
+        final metres = distance.toStringAsFixed(0);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'You are ${metres}m away. You must be within 50m to check in.'),
+          backgroundColor: Colors.orange,
+        ));
+      }
+    } catch (e) {
+      // Location unavailable — allow check-in with a warning in debug.
+      if (context.mounted) {
+        if (kDebugMode) {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => TaskProgressScreen(task: task)));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Location error: $e')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -316,13 +406,12 @@ class TaskNavigateScreen extends StatelessWidget {
             style: AppTextStyles.h3, overflow: TextOverflow.ellipsis),
       ),
       body: Column(children: [
-        // Map placeholder
         Expanded(
           child: GoogleMap(
             initialCameraPosition: CameraPosition(
               target: task.latitude != null && task.longitude != null
                   ? LatLng(task.latitude!, task.longitude!)
-                  : const LatLng(10.7202, 122.5621), // default: Iloilo City
+                  : const LatLng(10.7202, 122.5621),
               zoom: 15,
             ),
             markers: task.latitude != null && task.longitude != null
@@ -341,7 +430,6 @@ class TaskNavigateScreen extends StatelessWidget {
             zoomControlsEnabled: false,
           ),
         ),
-        // Bottom card
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(color: AppColors.white, boxShadow: [
@@ -352,26 +440,29 @@ class TaskNavigateScreen extends StatelessWidget {
           ]),
           child: Column(children: [
             Row(children: [
-              const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+              const Icon(Icons.location_on,
+                  color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
               Expanded(
                   child: Text('${task.barangay}, ${task.city}',
                       style: AppTextStyles.bodyMedium)),
             ]),
+            const SizedBox(height: 4),
+            Text('Must be within 50m to check in',
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.hintGrey)),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => TaskProgressScreen(task: task))),
+                onPressed: () => _checkIn(context),
                 style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28))),
-                child: const Text('Check In', style: AppTextStyles.labelLarge),
+                child:
+                    const Text('Check In', style: AppTextStyles.labelLarge),
               ),
             ),
           ]),
@@ -392,12 +483,70 @@ class TaskProgressScreen extends StatefulWidget {
 }
 
 class _TaskProgressScreenState extends State<TaskProgressScreen> {
+  final List<String> _uploadedPhotoUrls = [];
+  bool _uploadingPhoto = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TaskProvider>().startTimer();
     });
+  }
+
+  // FIX: Actually launch the camera and upload the photo to Firebase Storage.
+  //      Previously this just showed a "coming soon" snackbar.
+  Future<void> _logProgressPhoto() async {
+    setState(() => _uploadingPhoto = true);
+    try {
+      final picker = ImagePicker();
+      final file =
+          await picker.pickImage(source: ImageSource.camera, imageQuality: 75);
+      if (file == null) {
+        setState(() => _uploadingPhoto = false);
+        return;
+      }
+
+      final userId = context.read<AuthProvider>().user?.uid ?? 'unknown';
+      final ref = FirebaseStorage.instance.ref(
+          'task_progress/${widget.task.id}/${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await ref.putFile(File(file.path));
+      final url = await ref.getDownloadURL();
+      setState(() => _uploadedPhotoUrls.add(url));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('📷 Progress photo logged!'),
+            backgroundColor: AppColors.success));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Photo upload failed: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
+  Future<void> _submitCompletion() async {
+    final userId = context.read<AuthProvider>().user?.uid ?? '';
+    if (userId.isEmpty) return;
+
+    // FIX: Pass the uploaded photo URLs to submitVerification so they are
+    //      stored in Firestore alongside the verification record.
+    //      Points are awarded ONCE inside TaskService.submitVerification()
+    //      via UserProgressService — no double-counting.
+    await context.read<TaskProvider>().submitVerification(
+          taskId: widget.task.id,
+          userId: userId,
+          taskPoints: widget.task.points,
+          note: 'Task completed',
+          photos: _uploadedPhotoUrls,
+        );
+    if (!mounted) return;
+    Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (_) => TaskCompletionScreen(task: widget.task)));
   }
 
   @override
@@ -426,16 +575,15 @@ class _TaskProgressScreenState extends State<TaskProgressScreen> {
         child: Column(children: [
           const _StepRow(currentStep: 3),
           const SizedBox(height: 32),
-
           Text(widget.task.title,
               style: AppTextStyles.h2, textAlign: TextAlign.center),
           const SizedBox(height: 8),
           Text('${widget.task.barangay}, ${widget.task.city}',
               style: AppTextStyles.bodySmall),
           const SizedBox(height: 40),
-
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 40),
+            padding:
+                const EdgeInsets.symmetric(vertical: 28, horizontal: 40),
             decoration: BoxDecoration(
               color: AppColors.chipBg,
               borderRadius: BorderRadius.circular(24),
@@ -454,15 +602,27 @@ class _TaskProgressScreenState extends State<TaskProgressScreen> {
           ),
           const SizedBox(height: 12),
           const Text('TIME ELAPSED', style: AppTextStyles.labelSmall),
+          if (_uploadedPhotoUrls.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('${_uploadedPhotoUrls.length} photo(s) logged ✓',
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.success)),
+          ],
           const Spacer(),
-
           SizedBox(
             width: double.infinity,
             height: 52,
             child: ElevatedButton.icon(
-              onPressed: () => _logProgressPhoto(context),
-              icon: const Icon(Icons.camera_alt_outlined, size: 20),
-              label: const Text('Log Progress Photo',
+              onPressed: _uploadingPhoto ? null : _logProgressPhoto,
+              icon: _uploadingPhoto
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          color: AppColors.white, strokeWidth: 2))
+                  : const Icon(Icons.camera_alt_outlined, size: 20),
+              label: Text(
+                  _uploadingPhoto ? 'Uploading...' : 'Log Progress Photo',
                   style: AppTextStyles.labelLarge),
               style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -475,21 +635,7 @@ class _TaskProgressScreenState extends State<TaskProgressScreen> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: () async {
-                final userId = context.read<AuthProvider>().user?.uid ?? '';
-                await context.read<TaskProvider>().submitVerification(
-                  taskId: widget.task.id,
-                  userId: userId,
-                  taskPoints: widget.task.points,
-                  note: 'Task completed',
-                );
-                if (!context.mounted) return;
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) =>
-                            TaskCompletionScreen(task: widget.task)));
-              },
+              onPressed: _submitCompletion,
               style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.success,
                   shape: RoundedRectangleBorder(
@@ -500,14 +646,6 @@ class _TaskProgressScreenState extends State<TaskProgressScreen> {
           ),
         ]),
       ),
-    );
-  }
-
-  void _logProgressPhoto(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('📷 Camera integration coming soon'),
-          backgroundColor: AppColors.primary),
     );
   }
 }
@@ -537,7 +675,6 @@ class TaskCompletionScreen extends StatelessWidget {
         child: Column(children: [
           const _StepRow(currentStep: 4),
           const SizedBox(height: 32),
-
           Container(
             width: 90,
             height: 90,
@@ -557,10 +694,8 @@ class TaskCompletionScreen extends StatelessWidget {
           const Text('All your activities are verified to comply.',
               style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
           const SizedBox(height: 24),
-
           const _VerificationChecklist(),
           const Spacer(),
-
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -582,15 +717,15 @@ class TaskCompletionScreen extends StatelessWidget {
             width: double.infinity,
             height: 52,
             child: OutlinedButton(
-              onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context, '/home', (_) => false),
+              onPressed: () =>
+                  Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false),
               style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.primary),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28))),
               child: Text('Back to Home',
-                  style: AppTextStyles.labelLarge
-                      .copyWith(color: AppColors.primary)),
+                  style:
+                      AppTextStyles.labelLarge.copyWith(color: AppColors.primary)),
             ),
           ),
         ]),
@@ -644,13 +779,11 @@ class _TaskVerificationScreenState extends State<TaskVerificationScreen> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const _StepRow(currentStep: 5),
           const SizedBox(height: 20),
-
           const Text('Are your activities complete?', style: AppTextStyles.h3),
           const SizedBox(height: 6),
           const Text('Looking for: volunteers are willing',
               style: AppTextStyles.bodySmall),
           const SizedBox(height: 20),
-
           ...List.generate(_verifiers.length, (i) {
             final (name, verified) = _verifiers[i];
             return Container(
@@ -673,13 +806,13 @@ class _TaskVerificationScreenState extends State<TaskVerificationScreen> {
                     verified
                         ? Icons.check_circle
                         : Icons.radio_button_unchecked,
-                    color: verified ? AppColors.success : AppColors.borderGrey,
+                    color:
+                        verified ? AppColors.success : AppColors.borderGrey,
                     size: 22),
               ]),
             );
           }),
           const SizedBox(height: 20),
-
           TextFormField(
             controller: _noteCtrl,
             maxLines: 3,
@@ -688,7 +821,6 @@ class _TaskVerificationScreenState extends State<TaskVerificationScreen> {
                 hintText: 'Add a verification note (optional)...'),
           ),
           const SizedBox(height: 28),
-
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -717,17 +849,15 @@ class _TaskVerificationScreenState extends State<TaskVerificationScreen> {
     setState(() => _submitting = true);
     final userId = context.read<AuthProvider>().user?.uid ?? '';
     await context.read<TaskProvider>().submitVerification(
-      taskId: widget.task.id,
-      userId: userId,
-      taskPoints: widget.task.points,
-      note: _noteCtrl.text.trim(),
-    );
+          taskId: widget.task.id,
+          userId: userId,
+          taskPoints: widget.task.points,
+          note: _noteCtrl.text.trim(),
+        );
     setState(() => _submitting = false);
     if (!context.mounted) return;
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => TaskRewardsScreen(task: widget.task)));
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => TaskRewardsScreen(task: widget.task)));
   }
 }
 
@@ -745,7 +875,8 @@ class TaskRewardsScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          child:
+              Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Container(
               width: 110,
               height: 110,
@@ -763,8 +894,8 @@ class TaskRewardsScreen extends StatelessWidget {
                     color: AppColors.textDark)),
             const SizedBox(height: 8),
             Text('You earned',
-                style: AppTextStyles.bodyMedium
-                    .copyWith(color: AppColors.textGrey)),
+                style:
+                    AppTextStyles.bodyMedium.copyWith(color: AppColors.textGrey)),
             const SizedBox(height: 4),
             Text(
               '+${task.points} pts',
@@ -801,20 +932,20 @@ class TaskRewardsScreen extends StatelessWidget {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                    context, '/home', (_) => false),
+                onPressed: () =>
+                    Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false),
                 style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28))),
-                child:
-                    const Text('Back to Home', style: AppTextStyles.labelLarge),
+                child: const Text('Back to Home',
+                    style: AppTextStyles.labelLarge),
               ),
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context, '/rankings', (_) => false),
+              onPressed: () =>
+                  Navigator.pushNamedAndRemoveUntil(context, '/rankings', (_) => false),
               child: Text('View Leaderboard >',
                   style: AppTextStyles.labelMedium
                       .copyWith(color: AppColors.primary)),
@@ -863,12 +994,10 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         markerId: const MarkerId('picked_location'),
         position: position,
         draggable: true,
-        onDragEnd: (newPosition) {
-          _updateMarker(newPosition);
-        },
+        onDragEnd: _updateMarker,
       );
       _locationCtrl.text =
-          "${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";
+          '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
     });
   }
 
@@ -876,74 +1005,57 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Please enable location services in your settings.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Please enable location services.')));
+        }
         return;
       }
-
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) return;
       }
+      if (permission == LocationPermission.deniedForever) return;
 
-      if (permission == LocationPermission.deniedForever) {
-        return;
-      }
-
-      _locationCtrl.text = "Detecting...";
-      const locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.high,
-    );
-    Position position = await Geolocator.getCurrentPosition(
-      locationSettings: locationSettings,
-    );
-
-      LatLng detectedLatLng = LatLng(position.latitude, position.longitude);
-
+      _locationCtrl.text = 'Detecting...';
+      final position = await Geolocator.getCurrentPosition(
+          locationSettings:
+              const LocationSettings(accuracy: LocationAccuracy.high));
+      final latlng = LatLng(position.latitude, position.longitude);
       setState(() {
-        _updateMarker(detectedLatLng);
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(detectedLatLng, 16),
-        );
+        _updateMarker(latlng);
+        _mapController?.animateCamera(CameraUpdate.newLatLngZoom(latlng, 16));
       });
     } catch (e) {
-      debugPrint(e.toString());
-      _locationCtrl.text = "Error detecting location";
+      _locationCtrl.text = 'Error detecting location';
     }
   }
 
   Future<void> _searchLocation(String address) async {
     try {
-      List<geo.Location> locations = await geo.locationFromAddress(address);
+      final locations = await geo.locationFromAddress(address);
       if (locations.isNotEmpty) {
-        final first = locations.first;
-        LatLng newLatLng = LatLng(first.latitude, first.longitude);
+        final latlng =
+            LatLng(locations.first.latitude, locations.first.longitude);
         setState(() {
-          _updateMarker(newLatLng);
-          _mapController?.animateCamera(
-            CameraUpdate.newLatLngZoom(newLatLng, 16),
-          );
+          _updateMarker(latlng);
+          _mapController?.animateCamera(CameraUpdate.newLatLngZoom(latlng, 16));
         });
       }
     } catch (e) {
-      debugPrint("Geocoding error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not find location: "$address"')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not find location: "$address"')));
+      }
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _locationFocus.addListener(() {
-      setState(() {
-        _showMap = _locationFocus.hasFocus;
-      });
-    });
+    _locationFocus
+        .addListener(() => setState(() => _showMap = _locationFocus.hasFocus));
   }
 
   @override
@@ -952,6 +1064,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     _descCtrl.dispose();
     _tagCtrl.dispose();
     _locationCtrl.dispose();
+    _locationFocus.dispose();
     super.dispose();
   }
 
@@ -966,17 +1079,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
             icon: const Icon(Icons.arrow_back_ios_new,
                 color: AppColors.primary, size: 20),
             onPressed: () => Navigator.pop(context)),
-        title: Row(children: [
-          Container(
-              width: 28,
-              height: 28,
-              decoration: const BoxDecoration(
-                  color: AppColors.chipBg, shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_back_ios_new,
-                  size: 12, color: AppColors.primary)),
-          const SizedBox(width: 8),
-          const Text('Create a Task', style: AppTextStyles.h2),
-        ]),
+        title: const Text('Create a Task', style: AppTextStyles.h2),
       ),
       body: Form(
         key: _formKey,
@@ -984,7 +1087,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           padding: const EdgeInsets.all(20),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Photo
             GestureDetector(
               onTap: _pickPhoto,
               child: Container(
@@ -1012,28 +1114,25 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                         padding: const EdgeInsets.all(8),
                         itemCount: _photos.length,
                         itemBuilder: (_, i) => Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          width: 100,
-                          child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.file(_photos[i], fit: BoxFit.cover)),
-                        ),
-                      ),
+                              margin: const EdgeInsets.only(right: 8),
+                              width: 100,
+                              child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.file(_photos[i],
+                                      fit: BoxFit.cover)),
+                            )),
               ),
             ),
             const SizedBox(height: 20),
-
             const _FieldLabel(label: 'Title'),
             TextFormField(
                 controller: _titleCtrl,
                 style: AppTextStyles.inputText,
                 decoration: const InputDecoration(
                     hintText: 'e.g. Medical Assistance for Injured...'),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Title is required'
-                    : null),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Title is required' : null),
             const SizedBox(height: 16),
-
             const _FieldLabel(label: 'Description'),
             TextFormField(
                 controller: _descCtrl,
@@ -1045,8 +1144,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                     ? 'Description is required'
                     : null),
             const SizedBox(height: 16),
-
-            // Category dropdown
             const _FieldLabel(label: 'Category'),
             DropdownButtonFormField<TaskCategory>(
               initialValue: _category,
@@ -1070,8 +1167,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               onChanged: (v) => setState(() => _category = v!),
             ),
             const SizedBox(height: 16),
-
-            // Tags
             const _FieldLabel(label: 'Tags'),
             TextFormField(
               controller: _tagCtrl,
@@ -1113,17 +1208,13 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                       .toList()),
             ],
             const SizedBox(height: 16),
-
-            // Location
             const _FieldLabel(label: 'Location (Auto-detected)'),
             TextFormField(
               controller: _locationCtrl,
               focusNode: _locationFocus,
               textInputAction: TextInputAction.search,
-              onFieldSubmitted: (value) {
-                if (value.isNotEmpty) {
-                  _searchLocation(value);
-                }
+              onFieldSubmitted: (v) {
+                if (v.isNotEmpty) _searchLocation(v);
               },
               style: AppTextStyles.inputText,
               decoration: InputDecoration(
@@ -1134,10 +1225,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 10),
-
-            // mini-map dynamic
             if (_showMap)
               Container(
                 height: 200,
@@ -1149,31 +1237,25 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: GoogleMap(
-                    initialCameraPosition: const CameraPosition(
-                      target: LatLng(10.7202, 122.5621),
-                      zoom: 14,
-                    ),
+                    initialCameraPosition: CameraPosition(
+                        target: _currentLatLng, zoom: 14),
                     gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
                       Factory<OneSequenceGestureRecognizer>(
                           () => EagerGestureRecognizer()),
                     },
                     myLocationEnabled: true,
-                    onMapCreated: (controller) => _mapController = controller,
+                    onMapCreated: (c) => _mapController = c,
                     markers: _pickedMarker != null ? {_pickedMarker!} : {},
-                    onCameraMove: (CameraPosition position) {
-                      _updateMarker(position.target);
-                    },
+                    onCameraMove: (p) => _updateMarker(p.target),
                   ),
                 ),
               ),
-
-            // Volunteers & Points
             Row(children: [
               Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    const _FieldLabel(label: 'Number of Volunteers'),
+                    const _FieldLabel(label: 'Volunteers'),
                     TextFormField(
                       initialValue: _volunteers.toString(),
                       style: AppTextStyles.inputText,
@@ -1198,8 +1280,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                   ])),
             ]),
             const SizedBox(height: 16),
-
-            // Date/time
             Row(children: [
               Expanded(
                   child: _DateField(
@@ -1214,8 +1294,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                       onTap: () => _pickDate(context, false))),
             ]),
             const SizedBox(height: 16),
-
-            // Urgent toggle
             Row(children: [
               Switch(
                 value: _isUrgent,
@@ -1227,7 +1305,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               const Text('Mark as Urgent', style: AppTextStyles.bodyMedium),
             ]),
             const SizedBox(height: 28),
-
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -1256,19 +1333,13 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   Future<void> _pickDate(BuildContext context, bool isStart) async {
     final picked =
-        await showDateTimePicker(context, isStart ? _startDate : _endDate);
+        await _showDateTimePicker(context, isStart ? _startDate : _endDate);
     if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _startDate = picked;
-        } else {
-          _endDate = picked;
-        }
-      });
+      setState(() => isStart ? _startDate = picked : _endDate = picked);
     }
   }
 
-  Future<DateTime?> showDateTimePicker(
+  Future<DateTime?> _showDateTimePicker(
       BuildContext context, DateTime initial) async {
     final date = await showDatePicker(
         context: context,
@@ -1309,12 +1380,15 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           scheduledEnd: _endDate,
           createdBy: user?.uid ?? '',
           isUrgent: _isUrgent,
+          latitude: _currentLatLng.latitude,
+          longitude: _currentLatLng.longitude,
         );
     setState(() => _submitting = false);
     if (!context.mounted) return;
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Task created! 🎉'), backgroundColor: AppColors.success));
+        content: Text('Task created! 🎉'),
+        backgroundColor: AppColors.success));
   }
 }
 
@@ -1322,13 +1396,8 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 class _StepRow extends StatelessWidget {
   final int currentStep;
   const _StepRow({required this.currentStep});
-  static const _steps = [
-    'Accepted',
-    'Navigate',
-    'Check In',
-    'Complete',
-    'Verify'
-  ];
+  static const _steps = ['Accepted', 'Navigate', 'Check In', 'Complete', 'Verify'];
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -1349,8 +1418,7 @@ class _StepRow extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color:
-                  (done || active) ? AppColors.primary : AppColors.borderGrey,
+              color: (done || active) ? AppColors.primary : AppColors.borderGrey,
               shape: BoxShape.circle,
             ),
             child: Icon(done ? Icons.check : Icons.circle,
@@ -1373,8 +1441,9 @@ class _VerificationChecklist extends StatelessWidget {
     'Task title verified',
     'Location confirmed',
     'Volunteer photos submitted',
-    'Supervisor notified'
+    'Supervisor notified',
   ];
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1396,6 +1465,7 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String text;
   const _InfoRow({required this.icon, required this.text});
+
   @override
   Widget build(BuildContext context) => Row(children: [
         Icon(icon, size: 16, color: AppColors.hintGrey),
@@ -1408,6 +1478,7 @@ class _TagChip extends StatelessWidget {
   final String label;
   final VoidCallback? onRemove;
   const _TagChip({required this.label, this.onRemove});
+
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -1424,8 +1495,8 @@ class _TagChip extends StatelessWidget {
             const SizedBox(width: 4),
             GestureDetector(
                 onTap: onRemove,
-                child:
-                    const Icon(Icons.close, size: 13, color: AppColors.primary))
+                child: const Icon(Icons.close,
+                    size: 13, color: AppColors.primary)),
           ],
         ]),
       );
@@ -1434,6 +1505,7 @@ class _TagChip extends StatelessWidget {
 class _FieldLabel extends StatelessWidget {
   final String label;
   const _FieldLabel({required this.label});
+
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
@@ -1447,13 +1519,16 @@ class _DateField extends StatelessWidget {
   final VoidCallback onTap;
   const _DateField(
       {required this.label, required this.date, required this.onTap});
+
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const _FieldLabel(label: 'Date/Time'),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _FieldLabel(label: label),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: BoxDecoration(
                 border: Border.all(color: AppColors.borderGrey),
                 borderRadius: BorderRadius.circular(12)),

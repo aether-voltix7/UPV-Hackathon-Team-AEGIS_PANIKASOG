@@ -1,40 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/task_model.dart';
+import 'user_progress_service.dart';
 
 class TaskService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final UserProgressService _progressService = UserProgressService();
 
-  // ─── Fetch Tasks ───────────────────────────────────────────────────────────
+  // ─── Fetch Tasks ────────────────────────────────────────────────────────────
 
-  Future<List<TaskModel>> getTasks({TaskStatus? status, TaskCategory? category}) async {
-    Query<Map<String, dynamic>> q =
-        _db.collection('tasks').orderBy('scheduledStart', descending: false);
-
-    if (status != null) {
-      q = q.where('status', isEqualTo: status.name);
-    }
-    if (category != null) {
-      q = q.where('category', isEqualTo: category.name);
-    }
-
+  Future<List<TaskModel>> getTasks(
+      {TaskStatus? status, TaskCategory? category}) async {
+    Query<Map<String, dynamic>> q = _db
+        .collection('tasks')
+        .orderBy('scheduledStart', descending: false);
+    if (status != null) q = q.where('status', isEqualTo: status.name);
+    if (category != null) q = q.where('category', isEqualTo: category.name);
     final snapshot = await q.get();
-    return snapshot.docs.map((doc) => TaskModel.fromFirestore(doc)).toList();
+    return snapshot.docs.map((d) => TaskModel.fromFirestore(d)).toList();
   }
 
   Stream<List<TaskModel>> tasksStream({TaskStatus? status}) {
-    Query<Map<String, dynamic>> q =
-        _db.collection('tasks').orderBy('scheduledStart', descending: false);
-
-    if (status != null) {
-      q = q.where('status', isEqualTo: status.name);
-    }
-
+    Query<Map<String, dynamic>> q = _db
+        .collection('tasks')
+        .orderBy('scheduledStart', descending: false);
+    if (status != null) q = q.where('status', isEqualTo: status.name);
     return q.snapshots().map(
-          (snap) => snap.docs.map((d) => TaskModel.fromFirestore(d)).toList(),
-        );
+        (snap) => snap.docs.map((d) => TaskModel.fromFirestore(d)).toList());
   }
 
-  // ─── Create Task ───────────────────────────────────────────────────────────
+  // ─── Create Task ────────────────────────────────────────────────────────────
 
   Future<TaskModel> createTask({
     required String title,
@@ -74,60 +68,86 @@ class TaskService {
     return task;
   }
 
-  // ─── Accept Task ───────────────────────────────────────────────────────────
+  // ─── Accept Task ────────────────────────────────────────────────────────────
+  // FIX: Use arrayUnion so multiple users can accept independently.
+  //      Status stays 'open' until volunteersNeeded is filled so the task
+  //      does NOT disappear from other users' open list prematurely.
 
   Future<void> acceptTask(String taskId, String userId) async {
-    await _db.collection('tasks').doc(taskId).update({
-      'status': TaskStatus.accepted.name,
-      'acceptedBy': userId,
-      'acceptedAt': FieldValue.serverTimestamp(),
-      'volunteersAccepted': FieldValue.increment(1),
+    final taskRef = _db.collection('tasks').doc(taskId);
+
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(taskRef);
+      if (!snap.exists) return;
+
+      final data = snap.data()!;
+      final accepted = (data['volunteersAccepted'] as int? ?? 0) + 1;
+      final needed = data['volunteersNeeded'] as int? ?? 1;
+
+      // Only flip to 'accepted' (fully booked) once quota is met.
+      final newStatus =
+          accepted >= needed ? TaskStatus.accepted.name : data['status'];
+
+      tx.update(taskRef, {
+        'acceptedByList': FieldValue.arrayUnion([userId]),
+        'acceptedBy': userId, // keep for legacy reads
+        'acceptedAt': FieldValue.serverTimestamp(),
+        'volunteersAccepted': FieldValue.increment(1),
+        'status': newStatus,
+      });
     });
+
+    // Track jobsTaken for the accepting user.
+    await _progressService.incrementJobsTaken(userId);
   }
 
-  // ─── Complete Task ─────────────────────────────────────────────────────────
+  // ─── Complete Task ──────────────────────────────────────────────────────────
 
   Future<void> completeTask(String taskId) async {
     await _db.collection('tasks').doc(taskId).update({
       'status': TaskStatus.completed.name,
       'completedAt': FieldValue.serverTimestamp(),
     });
+    // NOTE: Do NOT award points here — that is done in submitVerification
+    // exclusively to avoid double-counting.
   }
 
-  // ─── Submit Verification ───────────────────────────────────────────────────
+  // ─── Submit Verification ────────────────────────────────────────────────────
+  // FIX: Points are awarded ONCE here via UserProgressService (atomic
+  //      Firestore transaction).  TaskProvider.completeTask() no longer
+  //      increments points so there is no double-count.
 
-Future<void> submitVerification({
-  required String taskId,
-  required String note,
-  List<String> photos = const [],
-}) async {
-  final taskRef = _db.collection('tasks').doc(taskId);
+  Future<void> submitVerification({
+    required String taskId,
+    required String userId,
+    required String note,
+    List<String> photos = const [],
+  }) async {
+    final taskRef = _db.collection('tasks').doc(taskId);
+    final taskSnap = await taskRef.get();
+    if (!taskSnap.exists) return;
 
-  final taskSnap = await taskRef.get();
-  if (!taskSnap.exists) return;
+    final taskData = taskSnap.data()!;
+    final points = (taskData['points'] as int?) ?? 0;
+    // EXP = same as points by default; adjust ratio here if needed.
+    final exp = points;
 
-  final taskData = taskSnap.data()!;
-  final userId = taskData['acceptedBy'];
-  final points = taskData['points'] ?? 0;
-
-  // Update task first
-  await taskRef.update({
-    'status': TaskStatus.verified.name,
-    'verificationNote': note,
-    'verificationPhotos': photos,
-  });
-
-  // Then update user points
-  if (userId != null) {
-    final userRef = _db.collection('users').doc(userId);
-    await userRef.update({
-      'points': FieldValue.increment(points),
-      'jobsFinished': FieldValue.increment(1),
+    // 1. Update the task document.
+    await taskRef.update({
+      'status': TaskStatus.verified.name,
+      'verificationNote': note,
+      'verificationPhotos': photos,
     });
-  }
-}
 
-  // ─── Cancel Task ──────────────────────────────────────────────────────────
+    // 2. Award points + EXP + level + badges — all in one atomic transaction.
+    await _progressService.awardTaskCompletion(
+      userId: userId,
+      pointsEarned: points,
+      expEarned: exp,
+    );
+  }
+
+  // ─── Cancel Task ────────────────────────────────────────────────────────────
 
   Future<void> cancelTask(String taskId) async {
     await _db.collection('tasks').doc(taskId).update({
