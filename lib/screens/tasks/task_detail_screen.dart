@@ -457,11 +457,8 @@ class _TaskVerificationScreenState extends State<TaskVerificationScreen> {
 
   Future<void> _submit(BuildContext context) async {
     setState(() => _submitting = true);
-    final userId = context.read<AuthProvider>().user?.uid ?? '';
     await context.read<TaskProvider>().submitVerification(
       taskId: widget.task.id,
-      userId: userId,
-      points: widget.task.points,
       note: _noteCtrl.text.trim(),
     );
     setState(() => _submitting = false);

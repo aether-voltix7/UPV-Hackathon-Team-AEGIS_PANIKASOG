@@ -456,3 +456,53 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _TabBarDelegate oldDelegate) => tabBar != oldDelegate.tabBar;
 }
+
+// ─── Post Tab ────────────────────────────────────────────
+
+class _UserPostsTabState extends State<_UserPostsTab> {
+  late Stream<List<PostModel>> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = PostService().getPostsByUser(widget.userId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<PostModel>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
+        }
+
+        final posts = snapshot.data ?? [];
+
+        if (posts.isEmpty) {
+          return const _EmptyTab(
+            label: 'No posts yet',
+            icon: Icons.grid_on_outlined,
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.only(bottom: 16),
+          itemCount: posts.length,
+          itemBuilder: (context, i) {
+            final post = posts[i];
+            return PostCard(
+              post: post,
+              currentUserId: widget.userId,
+              userVote: null,
+              onUpvote: () {},
+              onDownvote: () {},
+            );
+          },
+        );
+      },
+    );
+  }
+}

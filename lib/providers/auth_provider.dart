@@ -145,6 +145,15 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ─── Refresh User ─────────────────────────────────────────────────────────
+Future<void> refreshUser() async {
+  final model = await _authService.getCurrentUserModel();
+  if (model != null) {
+    _user = model;
+    notifyListeners();
+  }
+}
+
   Future<bool> sendPasswordReset(String email) async {
     _setLoading();
     try {

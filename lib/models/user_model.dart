@@ -18,6 +18,7 @@ class UserModel {
   final String? avatarUrl;
   final String level;
   final int levelProgress; // 0–100
+  final int exp;
   final DateTime dateJoined;
   final List<String> badges;
 
@@ -39,6 +40,7 @@ class UserModel {
     this.avatarUrl,
     this.level = 'Community Member',
     this.levelProgress = 0,
+    this.exp = 0,
     required this.dateJoined,
     this.badges = const [],
   });
@@ -66,31 +68,33 @@ class UserModel {
       avatarUrl: data['avatarUrl'],
       level: data['level'] ?? 'Community Member',
       levelProgress: data['levelProgress'] ?? 0,
+      exp: data['exp'] ?? 0,
       dateJoined: (data['dateJoined'] as Timestamp?)?.toDate() ?? DateTime.now(),
       badges: List<String>.from(data['badges'] ?? []),
     );
   }
 
-  Map<String, dynamic> toFirestore() => {
-        'email': email,
-        'phoneNumber': phoneNumber,
-        'firstName': firstName,
-        'lastName': lastName,
-        'username': username,
-        'address': address,
-        'skills': skills,
-        'preferredTasks': preferredTasks,
-        'referralCode': referralCode,
-        'usedReferralCode': usedReferralCode,
-        'points': points,
-        'jobsTaken': jobsTaken,
-        'jobsFinished': jobsFinished,
-        'avatarUrl': avatarUrl,
-        'level': level,
-        'levelProgress': levelProgress,
-        'dateJoined': Timestamp.fromDate(dateJoined),
-        'badges': badges,
-      };
+  Map<String, dynamic> toFirestore() {
+    return {
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'name': name,
+      'username': username,
+      'address': address,
+      'skills': skills,
+      'preferredTasks': preferredTasks,
+      'referralCode': referralCode,
+      'usedReferralCode': usedReferralCode,
+      'points': points,
+      'jobsTaken': jobsTaken,
+      'jobsFinished': jobsFinished,
+      'avatarUrl': avatarUrl,
+      'level': level,
+      'levelProgress': levelProgress,
+      'dateJoined': Timestamp.fromDate(dateJoined),
+      'badges': badges,
+    };
+  }
 
   UserModel copyWith({
     String? email,
@@ -109,6 +113,7 @@ class UserModel {
     String? avatarUrl,
     String? level,
     int? levelProgress,
+    int? exp,
     List<String>? badges,
   }) {
     return UserModel(
@@ -129,6 +134,7 @@ class UserModel {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       level: level ?? this.level,
       levelProgress: levelProgress ?? this.levelProgress,
+      exp: exp ?? this.exp,
       dateJoined: dateJoined,
       badges: badges ?? this.badges,
     );

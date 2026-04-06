@@ -26,7 +26,7 @@ class PostService {
 
   // ─── Create Post (with improved image upload error handling) ───────────────
 
-  Future<PostModel> createPost({
+    Future<PostModel> createPost({
     required String authorId,
     required String authorUsername,
     String? authorAvatarUrl,
@@ -39,21 +39,17 @@ class PostService {
     required List<String> tags,
     required PostCategory category,
     bool isUrgent = false,
-    List<String> urgentReasons = const [],
+    List<String> urgentReasons = const [], // ← add this
+    List<File> imageFiles = const [],
   }) async {
-    String? imageUrl;
+    List<String> imageUrls = [];
 
     if (imageFile != null) {
-      try {
-        final ref = FirebaseStorage.instance.ref(
-          'posts/${DateTime.now().millisecondsSinceEpoch}_$authorId.jpg',
-        );
-        await ref.putFile(imageFile);
-        imageUrl = await ref.getDownloadURL();
-      } catch (e) {
-        print('Image upload failed: $e');
-        // imageUrl remains null, post will be created without image
-      }
+      final ref = FirebaseStorage.instance.ref(
+        'posts/${DateTime.now().millisecondsSinceEpoch}_$authorId.jpg',
+      );
+      await ref.putFile(imageFile);
+      imageUrl = await ref.getDownloadURL();
     }
 
     final docRef = _db.collection('posts').doc();
@@ -69,11 +65,12 @@ class PostService {
       city: city,
       title: title,
       caption: caption,
-      imageUrl: imageUrl,
+      imageUrl: imageUrls.isNotEmpty ? imageUrls.first : null,
+      imageUrls: imageUrls,
       tags: tags,
       category: category,
       isUrgent: isUrgent,
-      urgentReasons: urgentReasons,
+      urgentReasons: urgentReasons, // ← fixed
       createdAt: DateTime.now(),
     );
     await docRef.set(post.toFirestore());
@@ -229,4 +226,17 @@ class PostService {
           isVerifiedUrgent: true,
         ),
       ];
+
+      // ─── User Posts ───────────────────────────────────────────
+
+    Stream<List<PostModel>> getPostsByUser(String userId) {
+    return _db
+        .collection('posts')
+        .where('authorId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => PostModel.fromFirestore(doc)).toList());
 }
+}
+

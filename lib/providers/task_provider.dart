@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/task_model.dart';
 import '../services/task_service.dart';
+import '../services/user_progress_service.dart';
 
 class TaskProvider extends ChangeNotifier {
   final TaskService _service;
@@ -54,10 +55,6 @@ class TaskProvider extends ChangeNotifier {
     if (idx == -1) return false;
     try {
       await _service.acceptTask(taskId, userId);
-      // Increment jobsTaken for user
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'jobsTaken': FieldValue.increment(1),
-      });
     } catch (_) {}
     _tasks[idx] = _tasks[idx].copyWith(
       status: TaskStatus.accepted,
@@ -68,6 +65,7 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
     return true;
   }
+  
 
   void startTimer() {
     if (_timerRunning) return;
@@ -105,10 +103,9 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ─── Submit Verification ───────────────────────────────────────────────────
   Future<bool> submitVerification({
     required String taskId,
-    required String userId,
-    required int points,
     required String note,
     List<String> photos = const [],
   }) async {
@@ -122,6 +119,7 @@ class TaskProvider extends ChangeNotifier {
         'jobsFinished': FieldValue.increment(1),
       });
     } catch (_) {}
+
     _tasks[idx] = _tasks[idx].copyWith(
       status: TaskStatus.verified,
       verificationNote: note,

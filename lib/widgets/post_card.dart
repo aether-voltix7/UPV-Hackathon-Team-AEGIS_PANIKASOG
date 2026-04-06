@@ -61,28 +61,23 @@ class PostCard extends StatelessWidget {
                 child: _TagRow(tags: post.tags, isUrgent: post.isUrgent),
               ),
 
-            // ── Image ─────────────────────────────────────────────────────────
-            if (post.imageUrl != null)
+            // ── Image(s) ──────────────────────────────────────────────────────
+            if (post.imageUrls.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.zero,
-                  child: Image.network(
-                    post.imageUrl!,
-                    width: double.infinity,
-                    height: 200,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _ImagePlaceholder(),
-                  ),
-                ),
+                child: _ImageCarousel(imageUrls: post.imageUrls),
               )
-            else
-              // Placeholder block shown when no image
+            else if (post.imageUrl != null)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
-                child: _ImagePlaceholder(),
+                child: Image.network(
+                  post.imageUrl!,
+                  width: double.infinity,
+                  height: 200,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _ImagePlaceholder(),
+                ),
               ),
-
             // ── Caption ───────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
@@ -102,6 +97,93 @@ class PostCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─── Image Carousel ────────────────────────────────────────────────────────────
+class _ImageCarousel extends StatefulWidget {
+  final List<String> imageUrls;
+  const _ImageCarousel({required this.imageUrls});
+
+  @override
+  State<_ImageCarousel> createState() => _ImageCarouselState();
+}
+
+class _ImageCarouselState extends State<_ImageCarousel> {
+  int _current = 0;
+  final PageController _ctrl = PageController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        SizedBox(
+          height: 220,
+          child: PageView.builder(
+            controller: _ctrl,
+            itemCount: widget.imageUrls.length,
+            onPageChanged: (i) => setState(() => _current = i),
+            itemBuilder: (context, i) => Image.network(
+              widget.imageUrls[i],
+              width: double.infinity,
+              height: 220,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _ImagePlaceholder(),
+            ),
+          ),
+        ),
+        // Dot indicators
+        if (widget.imageUrls.length > 1)
+          Positioned(
+            bottom: 10,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(widget.imageUrls.length, (i) =>
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: _current == i ? 16 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _current == i ? AppColors.primary : Colors.white.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        // Image counter badge
+        if (widget.imageUrls.length > 1)
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${_current + 1}/${widget.imageUrls.length}',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 11,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
