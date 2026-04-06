@@ -854,7 +854,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   bool _showMap = false;
   GoogleMapController? _mapController;
   Marker? _pickedMarker;
-  LatLng _currentLatLng = const LatLng(10.7202, 122.5621);
+  static const LatLng _iloiloDefaultLoc = LatLng(10.7202, 122.5621);
   int _points = 100;
   int _volunteers = 5;
   bool _isUrgent = false;
@@ -862,34 +862,54 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   DateTime _startDate = DateTime.now().add(const Duration(hours: 2));
   DateTime _endDate = DateTime.now().add(const Duration(hours: 6));
 
-  void _updateMarker(LatLng position) {
+  // Update pin on the map, converts coordinates to a Barangay name
+  Future<void> _updateMarker(LatLng position) async {
+    // Update the visual marker first
     setState(() {
-      _currentLatLng = position;
       _pickedMarker = Marker(
         markerId: const MarkerId('picked_location'),
         position: position,
-        draggable: true,
-        onDragEnd: (newPosition) {
-          _updateMarker(newPosition);
-        },
       );
-      // This keeps the text field in sync with the pin
-      _locationCtrl.text =
-          "${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";
     });
+
+    try {
+      // Convert Lat/Long to Address list
+      List<geo.Placemark> placemarks = await geo.placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        geo.Placemark place = placemarks.first;
+
+        // Construct a PH-friendly address: "Brgy, City"
+        String barangay = place.subLocality ?? place.name ?? "Unknown Brgy";
+        String city = place.locality ?? "Iloilo City";
+
+        setState(() {
+          _locationCtrl.text = "$barangay, $city";
+        });
+      }
+    } catch (e) {
+      // Fallback: If internet fails, show coordinates
+      debugPrint("Reverse Geocoding failed: $e");
+      setState(() {
+        _locationCtrl.text =
+            "${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";
+      });
+    }
   }
 
-  // auto-detect current location
+  // auto-detect current location and perform Reverse Geocoding
   Future<void> _handleLocationDetection() async {
     try {
-      // 1. Check if GPS service is actually ON
+      // 1. Check if GPS is ON
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        // Prompt user to turn on GPS
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content:
-                  Text('Please enable location services in your settings.')),
+              content: Text('Please enable location services in settings.')),
         );
         return;
       }
@@ -902,12 +922,13 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        // User has permanently denied, they'll need to go to app settings
+        // Direct user to settings if they blocked it permanently
         return;
       }
 
       // 3. Get Position
-      _locationCtrl.text = "Detecting..."; // Show loading state
+      setState(() => _locationCtrl.text = "Detecting address...");
+
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -915,44 +936,76 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       // 4. Create LatLng object
       LatLng detectedLatLng = LatLng(position.latitude, position.longitude);
 
-      // 5. Update UI and Marker
-      setState(() {
-        // This helper handles the Marker creation and the Text field update
-        _updateMarker(detectedLatLng);
+      if (_mapController != null) {
+        try {
+          await _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(detectedLatLng, 16),
+          );
+        } catch (e) {
+          debugPrint("GPS Camera move failed: $e");
+        }
+      }
 
-        // Update Map's camera with a Zoom level (16 is good for street level)
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(detectedLatLng, 16),
-        );
-      });
+      // 5. Trigger the Marker update AND Name Lookup
+      await _updateMarker(detectedLatLng);
     } catch (e) {
-      debugPrint(e.toString());
-      _locationCtrl.text = "Error detecting location";
+      debugPrint("GPS Error: $e");
+      if (mounted) {
+        setState(() => _locationCtrl.text = "Error detecting location");
+      }
     }
   }
 
-  Future<void> _searchLocation(String address) async {
+  Future<void> _searchLocation(String query) async {
+    if (query.isEmpty) return;
+
     try {
-      // We use geo.locationFromAddress and geo.Location
-      List<geo.Location> locations = await geo.locationFromAddress(address);
+      // search for a location in Iloilo
+      String fullQuery = "$query, Iloilo City, Philippines";
+      debugPrint("Searching for: $fullQuery");
+
+      List<geo.Location> locations = await geo.locationFromAddress(fullQuery);
+      if (!mounted) return;
 
       if (locations.isNotEmpty) {
-        final first = locations.first;
-        LatLng newLatLng = LatLng(first.latitude, first.longitude);
+        final target =
+            LatLng(locations.first.latitude, locations.first.longitude);
+        debugPrint("Location found: ${target.latitude}, ${target.longitude}");
 
-        setState(() {
-          _updateMarker(newLatLng); // Move the red pin
-          _mapController?.animateCamera(
-            CameraUpdate.newLatLngZoom(newLatLng, 16),
+        if (_mapController != null) {
+          try {
+            await _mapController!.animateCamera(
+              CameraUpdate.newLatLngZoom(target, 16),
+            );
+          } catch (e) {
+            debugPrint("Map animation failed (probably disposed): $e");
+          }
+        }
+
+        // 2. Move the Camera
+        if (_mapController != null) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(target, 16),
           );
-        });
+        } else {
+          debugPrint("Map Controller is NULL!");
+        }
+
+        // 3. Update the Marker and the Input Box text
+        await _updateMarker(target);
+      } else {
+        _showError("No results found for '$query'");
       }
     } catch (e) {
-      debugPrint("Geocoding error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not find location: "$address"')),
-      );
+      debugPrint("Geocoding Error: $e");
+      if (mounted) _showError("Location search failed. Check internet.");
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+    );
   }
 
   @override
@@ -967,6 +1020,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   @override
   void dispose() {
+    _mapController?.dispose();
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _tagCtrl.dispose();
@@ -1169,7 +1223,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                   borderRadius: BorderRadius.circular(12),
                   child: GoogleMap(
                     initialCameraPosition: const CameraPosition(
-                      target: LatLng(10.7202, 122.5621),
+                      target: _iloiloDefaultLoc,
                       zoom: 14,
                     ),
                     gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
@@ -1177,7 +1231,10 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                           () => EagerGestureRecognizer()),
                     },
                     myLocationEnabled: true,
-                    onMapCreated: (controller) => _mapController = controller,
+                    onMapCreated: (controller) {
+                      if (!mounted) return;
+                      _mapController = controller;
+                    },
                     // display the marker
                     markers: _pickedMarker != null ? {_pickedMarker!} : {},
                     //  moves the pin as the user drags the map

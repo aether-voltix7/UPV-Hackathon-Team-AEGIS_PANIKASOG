@@ -16,27 +16,77 @@ class HazardCategory {
   });
 
   static const List<HazardCategory> all = [
-    HazardCategory(id: 'natural', label: 'Natural', emoji: '🌪️', subcategories: [
-      'Typhoon / Storm', 'Flood', 'Storm Surge', 'Drought', 'Landslide',
-    ]),
-    HazardCategory(id: 'geological', label: 'Geological', emoji: '🌋', subcategories: [
-      'Earthquake', 'Volcanic Eruption', 'Tsunami', 'Ground Fissure', 'Liquefaction',
-    ]),
-    HazardCategory(id: 'environmental', label: 'Environmental', emoji: '☣️', subcategories: [
-      'Oil Spill', 'Air Pollution', 'Water Contamination', 'Chemical Spill', 'Wildfire',
-    ]),
-    HazardCategory(id: 'accidents_infrastructure', label: 'Accidents & Infrastructure Disruptions', emoji: '🏗️', subcategories: [
-      'Power outage / Blackout', 'Bridge collapse', 'Dam failure',
-    ]),
-    HazardCategory(id: 'utility_service', label: 'Utility & Service Failures', emoji: '⚡', subcategories: [
-      'Water supply interruption', 'Telecommunication loss', 'Gas leak', 'Sewer / Drainage overflow',
-    ]),
-    HazardCategory(id: 'transportation', label: 'Transportation Accidents', emoji: '🚗', subcategories: [
-      'Vehicle accident', 'Road blockage', 'Ship / Boat accident',
-    ]),
-    HazardCategory(id: 'human_made', label: 'Human-Generated Events', emoji: '⚠️', subcategories: [
-      'Armed conflict', 'Terrorism / Bomb threat', 'Mass gathering incident', 'Fire incident',
-    ]),
+    HazardCategory(
+        id: 'natural',
+        label: 'Natural',
+        emoji: '🌪️',
+        subcategories: [
+          'Typhoon / Storm',
+          'Flood',
+          'Storm Surge',
+          'Drought',
+          'Landslide',
+        ]),
+    HazardCategory(
+        id: 'geological',
+        label: 'Geological',
+        emoji: '🌋',
+        subcategories: [
+          'Earthquake',
+          'Volcanic Eruption',
+          'Tsunami',
+          'Ground Fissure',
+          'Liquefaction',
+        ]),
+    HazardCategory(
+        id: 'environmental',
+        label: 'Environmental',
+        emoji: '☣️',
+        subcategories: [
+          'Oil Spill',
+          'Air Pollution',
+          'Water Contamination',
+          'Chemical Spill',
+          'Wildfire',
+        ]),
+    HazardCategory(
+        id: 'accidents_infrastructure',
+        label: 'Accidents & Infrastructure Disruptions',
+        emoji: '🏗️',
+        subcategories: [
+          'Power outage / Blackout',
+          'Bridge collapse',
+          'Dam failure',
+        ]),
+    HazardCategory(
+        id: 'utility_service',
+        label: 'Utility & Service Failures',
+        emoji: '⚡',
+        subcategories: [
+          'Water supply interruption',
+          'Telecommunication loss',
+          'Gas leak',
+          'Sewer / Drainage overflow',
+        ]),
+    HazardCategory(
+        id: 'transportation',
+        label: 'Transportation Accidents',
+        emoji: '🚗',
+        subcategories: [
+          'Vehicle accident',
+          'Road blockage',
+          'Ship / Boat accident',
+        ]),
+    HazardCategory(
+        id: 'human_made',
+        label: 'Human-Generated Events',
+        emoji: '⚠️',
+        subcategories: [
+          'Armed conflict',
+          'Terrorism / Bomb threat',
+          'Mass gathering incident',
+          'Fire incident',
+        ]),
   ];
 }
 
@@ -119,39 +169,56 @@ class ReportModel {
 
   static ReportStatus _statusFromString(String? s) {
     switch (s) {
-      case 'verified': return ReportStatus.verified;
-      case 'resolved': return ReportStatus.resolved;
-      case 'dismissed': return ReportStatus.dismissed;
-      default: return ReportStatus.pending;
+      case 'verified':
+        return ReportStatus.verified;
+      case 'resolved':
+        return ReportStatus.resolved;
+      case 'dismissed':
+        return ReportStatus.dismissed;
+      default:
+        return ReportStatus.pending;
     }
   }
 
-  String get categoryLabel =>
-      HazardCategory.all.firstWhere((c) => c.id == hazardCategoryId,
-          orElse: () => const HazardCategory(id: '', label: 'Unknown', emoji: '⚠️', subcategories: [])).label;
+  String get categoryLabel => HazardCategory.all
+      .firstWhere((c) => c.id == hazardCategoryId,
+          orElse: () => const HazardCategory(
+              id: '', label: 'Unknown', emoji: '⚠️', subcategories: []))
+      .label;
 
   static List<ReportModel> get mockReports => [
-    ReportModel(
-      id: 'report_1',
-      reportedBy: 'uid_1', reporterUsername: 'juan_org',
-      title: 'Flooded Road - Brgy. Rizal',
-      description: 'Main road completely flooded. Water level up to knee height. Vehicles cannot pass.',
-      hazardCategoryId: 'natural', hazardSubcategory: 'Flood',
-      barangay: 'Brgy. Rizal', city: 'Iloilo City',
-      latitude: 10.7202, longitude: 122.5621,
-      reportedAt: DateTime.now().subtract(const Duration(hours: 2)),
-      status: ReportStatus.verified, upvotes: 34,
-    ),
-    ReportModel(
-      id: 'report_2',
-      reportedBy: 'uid_2', reporterUsername: 'maria_r',
-      title: 'Power Outage - Brgy. Molo',
-      description: 'No electricity since 6am. Affecting 3 blocks.',
-      hazardCategoryId: 'utility_service', hazardSubcategory: 'Power outage / Blackout',
-      barangay: 'Brgy. Molo', city: 'Iloilo City',
-      latitude: 10.7180, longitude: 122.5580,
-      reportedAt: DateTime.now().subtract(const Duration(hours: 5)),
-      status: ReportStatus.pending, upvotes: 12,
-    ),
-  ];
+        ReportModel(
+          id: 'report_1',
+          reportedBy: 'uid_1',
+          reporterUsername: 'juan_org',
+          title: 'Flooded Road - Brgy. Rizal',
+          description:
+              'Main road completely flooded. Water level up to knee height. Vehicles cannot pass.',
+          hazardCategoryId: 'natural',
+          hazardSubcategory: 'Flood',
+          barangay: 'Brgy. Rizal Pala-Pala I',
+          city: 'Iloilo City',
+          latitude: 10.6916,
+          longitude: 122.5622,
+          reportedAt: DateTime.now().subtract(const Duration(hours: 2)),
+          status: ReportStatus.verified,
+          upvotes: 34,
+        ),
+        ReportModel(
+          id: 'report_2',
+          reportedBy: 'uid_2',
+          reporterUsername: 'maria_r',
+          title: 'Power Outage - Brgy. Molo',
+          description: 'No electricity since 6am. Affecting 3 blocks.',
+          hazardCategoryId: 'utility_service',
+          hazardSubcategory: 'Power outage / Blackout',
+          barangay: 'Brgy. Poblacion Molo',
+          city: 'Iloilo City',
+          latitude: 10.6950,
+          longitude: 122.5460,
+          reportedAt: DateTime.now().subtract(const Duration(hours: 5)),
+          status: ReportStatus.pending,
+          upvotes: 12,
+        ),
+      ];
 }
