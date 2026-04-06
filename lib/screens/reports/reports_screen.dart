@@ -21,11 +21,11 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> {
   bool _showMap = false;
 
-   Stream<List<ReportModel>> get _reportsStream => FirebaseFirestore.instance
-      .collection('reports')
-      .orderBy('reportedAt', descending: true)
-      .snapshots()
-      .map((snap) {
+  Stream<List<ReportModel>> get _reportsStream => FirebaseFirestore.instance
+          .collection('reports')
+          .orderBy('reportedAt', descending: true)
+          .snapshots()
+          .map((snap) {
         final liveReports = snap.docs.map(ReportModel.fromFirestore).toList();
         return [...liveReports, ...ReportModel.mockReports]; // ← merge both
       });
@@ -38,66 +38,70 @@ class _ReportsScreenState extends State<ReportsScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         title: const Text('Reports', style: AppTextStyles.h2),
-      actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 12),
-          decoration: BoxDecoration(
-              color: AppColors.lightGrey,
-              borderRadius: BorderRadius.circular(20)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            GestureDetector(
-              onTap: () => setState(() => _showMap = false),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                    color: !_showMap ? AppColors.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20)),
-                child: Text('List',
-                    style: AppTextStyles.bodySmall.copyWith(
-                        color: !_showMap ? AppColors.white : AppColors.hintGrey,
-                        fontWeight: FontWeight.w600)),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+                color: AppColors.lightGrey,
+                borderRadius: BorderRadius.circular(20)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              GestureDetector(
+                onTap: () => setState(() => _showMap = false),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: !_showMap ? AppColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Text('List',
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color:
+                              !_showMap ? AppColors.white : AppColors.hintGrey,
+                          fontWeight: FontWeight.w600)),
+                ),
               ),
-            ),
-            GestureDetector(
-              onTap: () => setState(() => _showMap = true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                    color: _showMap ? AppColors.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20)),
-                child: Text('Map',
-                    style: AppTextStyles.bodySmall.copyWith(
-                        color: _showMap ? AppColors.white : AppColors.hintGrey,
-                        fontWeight: FontWeight.w600)),
+              GestureDetector(
+                onTap: () => setState(() => _showMap = true),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: _showMap ? AppColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Text('Map',
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color:
+                              _showMap ? AppColors.white : AppColors.hintGrey,
+                          fontWeight: FontWeight.w600)),
+                ),
               ),
-            ),
-          ]),
-        ),
-      ],
+            ]),
+          ),
+        ],
       ),
-        body: StreamBuilder<List<ReportModel>>(
-          stream: _reportsStream,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
-            final reports = snapshot.data ?? [];
-            if (reports.isEmpty) {
-              return const Center(child: Text('No reports yet.'));
-            }
-            return _showMap
-                ? _MapView(reports: reports)
-                : _ListView(reports: reports);
-          },
-        ),
+      body: StreamBuilder<List<ReportModel>>(
+        stream: _reportsStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          final reports = snapshot.data ?? [];
+          if (reports.isEmpty) {
+            return const Center(child: Text('No reports yet.'));
+          }
+          return _showMap
+              ? _MapView(reports: reports)
+              : _ListView(reports: reports);
+        },
+      ),
     );
   }
 }
 
-// ─── Map placeholder ───────────────────────────────────────────────────────────
+// ─── Map  ───────────────────────────────────────────────────────────
 class _MapView extends StatelessWidget {
   final List<ReportModel> reports;
   const _MapView({required this.reports});
@@ -162,11 +166,17 @@ class _ListViewState extends State<_ListView> {
   List<ReportModel> get _filtered {
     switch (_selectedFilter) {
       case 'Verified':
-        return widget.reports.where((r) => r.status == ReportStatus.verified).toList();
+        return widget.reports
+            .where((r) => r.status == ReportStatus.verified)
+            .toList();
       case 'Pending':
-        return widget.reports.where((r) => r.status == ReportStatus.pending).toList();
+        return widget.reports
+            .where((r) => r.status == ReportStatus.pending)
+            .toList();
       case 'Resolved':
-        return widget.reports.where((r) => r.status == ReportStatus.resolved).toList();
+        return widget.reports
+            .where((r) => r.status == ReportStatus.resolved)
+            .toList();
       default:
         return widget.reports;
     }
@@ -188,14 +198,16 @@ class _ListViewState extends State<_ListView> {
               onTap: () => setState(() => _selectedFilter = label), // ← on tap
               child: Container(
                 margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.primary : AppColors.lightGrey,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(label,
                     style: AppTextStyles.bodySmall.copyWith(
-                        color: isSelected ? AppColors.white : AppColors.textGrey,
+                        color:
+                            isSelected ? AppColors.white : AppColors.textGrey,
                         fontWeight: FontWeight.w500)),
               ),
             );
@@ -205,8 +217,9 @@ class _ListViewState extends State<_ListView> {
       Expanded(
         child: ListView.builder(
           padding: const EdgeInsets.all(12),
-          itemCount: _filtered.length,        // ← use filtered
-          itemBuilder: (_, i) => _ReportCard(report: _filtered[i]), // ← use filtered
+          itemCount: _filtered.length, // ← use filtered
+          itemBuilder: (_, i) =>
+              _ReportCard(report: _filtered[i]), // ← use filtered
         ),
       ),
     ]);
@@ -471,57 +484,58 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
   }
 
   Future<void> _submit(BuildContext context) async {
-  if (!_formKey.currentState!.validate()) return;
-  if (_selectedCategoryId == null || _selectedSubcategory == null) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please select a hazard category.'),
-        backgroundColor: AppColors.error));
-    return;
-  }
-  setState(() => _submitting = true);
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategoryId == null || _selectedSubcategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please select a hazard category.'),
+          backgroundColor: AppColors.error));
+      return;
+    }
+    setState(() => _submitting = true);
 
-  try {
-    final user = FirebaseAuth.instance.currentUser!;
-        final locationParts = _locationCtrl.text.split(',');
-        final barangay = locationParts.isNotEmpty ? locationParts[0].trim() : 'Unknown';
-        final city = locationParts.length > 1 ? locationParts[1].trim() : 'Iloilo City';
-        final report = ReportModel(
-          id: '',
-          reportedBy: user.uid,
-          reporterUsername: user.displayName ?? 'Anonymous',
-          reporterAvatarUrl: user.photoURL,
-          title: '${_selectedSubcategory!} - $barangay',
-          description: _descCtrl.text.trim(),
-          hazardCategoryId: _selectedCategoryId!,
-          hazardSubcategory: _selectedSubcategory!,
-          barangay: barangay,
-          city: city,
-          reportedAt: DateTime.now(),
-          status: ReportStatus.pending,
-          imageUrls: const [],
-          upvotes: 0,
-    );
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final locationParts = _locationCtrl.text.split(',');
+      final barangay =
+          locationParts.isNotEmpty ? locationParts[0].trim() : 'Unknown';
+      final city =
+          locationParts.length > 1 ? locationParts[1].trim() : 'Iloilo City';
+      final report = ReportModel(
+        id: '',
+        reportedBy: user.uid,
+        reporterUsername: user.displayName ?? 'Anonymous',
+        reporterAvatarUrl: user.photoURL,
+        title: '${_selectedSubcategory!} - $barangay',
+        description: _descCtrl.text.trim(),
+        hazardCategoryId: _selectedCategoryId!,
+        hazardSubcategory: _selectedSubcategory!,
+        barangay: barangay,
+        city: city,
+        reportedAt: DateTime.now(),
+        status: ReportStatus.pending,
+        imageUrls: const [],
+        upvotes: 0,
+      );
 
-    await FirebaseFirestore.instance
-        .collection('reports')
-        .add(report.toFirestore());
+      await FirebaseFirestore.instance
+          .collection('reports')
+          .add(report.toFirestore());
+    } catch (e) {
+      setState(() => _submitting = false);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to submit: $e'),
+          backgroundColor: AppColors.error));
+      return;
+    }
 
-  } catch (e) {
     setState(() => _submitting = false);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to submit: $e'),
-        backgroundColor: AppColors.error));
-    return;
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Report submitted! Thank you. 🙏'),
+        backgroundColor: AppColors.success));
   }
-
-  setState(() => _submitting = false);
-  if (!context.mounted) return;
-  Navigator.pop(context);
-  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Report submitted! Thank you. 🙏'),
-      backgroundColor: AppColors.success));
-}
 }
 
 class _AutoField extends StatelessWidget {
