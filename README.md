@@ -41,10 +41,8 @@ Panikasog is a community-centric, gamified disaster resilience mobile applicatio
 ## Quick Links
 
 
-**GitHub:** https://github.com/aether-voltix7/UPV-Hackathon-Team-AEGIS_PANIKASOG
-**Figma:** https://www.figma.com/design/21VUDwITmUnhC1aFwxEWPf/PANIKASOG-%7C-KOMSAI.HACK-2026?node-id=0-1&t=vdCP4EJTCwdHxvr6-1
-**Documentation (PDF):** (drive link)
-
+- **GitHub:** https://github.com/aether-voltix7/UPV-Hackathon-Team-AEGIS_PANIKASOG
+- **Figma:** https://www.figma.com/design/21VUDwITmUnhC1aFwxEWPf/PANIKASOG-%7C-KOMSAI.HACK-2026?node-id=0-1&t=vdCP4EJTCwdHxvr6-1
 
 ## Tech Stack
 
