@@ -71,7 +71,7 @@ class _MainScreenState extends State<MainScreen>
                 child: Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 90),
+                    padding: const EdgeInsets.only(bottom: 10),
                     child: ScaleTransition(
                       scale: _fabScale,
                       child: _FabMenu(

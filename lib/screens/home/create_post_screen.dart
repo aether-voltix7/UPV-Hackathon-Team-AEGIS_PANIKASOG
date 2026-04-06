@@ -135,20 +135,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               color: AppColors.primary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: const BoxDecoration(
-                  color: AppColors.chipBg, shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_back_ios_new,
-                  size: 14, color: AppColors.primary),
-            ),
-            const SizedBox(width: 8),
-            const Text('Create a Post', style: AppTextStyles.h2),
-          ],
-        ),
+        title: const Text('Create a Post', style: AppTextStyles.h2),
       ),
       body: Form(
         key: _formKey,

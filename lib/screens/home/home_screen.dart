@@ -11,7 +11,6 @@ import '../../providers/post_provider.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/urgent_tasks_drawer.dart';
-import '../../widgets/vote_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,18 +50,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final userId = authProvider.user?.uid;
     if (userId == null) return;
 
-    final confirmed = await showVoteDialog(
-      context: context,
-      post: post,
-      voteType: voteType,
-    );
-    if (confirmed == true && context.mounted) {
-      await context.read<PostProvider>().vote(
-            postId: post.id,
-            userId: userId,
-            voteType: voteType,
-          );
-    }
+    await context.read<PostProvider>().vote(
+          postId: post.id,
+          userId: userId,
+          voteType: voteType,
+        );
   }
 
   @override

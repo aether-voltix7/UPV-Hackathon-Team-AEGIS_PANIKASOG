@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -619,6 +621,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   final _locationCtrl = TextEditingController(text: 'La Paz, Iloilo City');
   TaskCategory _category = TaskCategory.emergencyResponse;
   final List<String> _tags = []; // made final
+  final List<File> _photos = []; // made final
   int _points = 100;
   int _volunteers = 5;
   bool _isUrgent = false;
@@ -640,12 +643,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.white, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.primary, size: 20), onPressed: () => Navigator.pop(context)),
-        title: Row(children: [
-          Container(width: 28, height: 28, decoration: const BoxDecoration(color: AppColors.chipBg, shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_back_ios_new, size: 12, color: AppColors.primary)),
-          const SizedBox(width: 8),
-          const Text('Create a Task', style: AppTextStyles.h2),
-        ]),
+        title: const Text('Create a Task', style: AppTextStyles.h2),
       ),
       body: Form(
         key: _formKey,
@@ -653,14 +651,41 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // Photo
-            Container(
-              width: double.infinity, height: 130,
-              decoration: BoxDecoration(color: AppColors.lightGrey, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.borderGrey)),
-              child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.camera_alt_outlined, color: AppColors.hintGrey, size: 32),
-                SizedBox(height: 8),
-                Text('Take Photos', style: TextStyle(fontFamily: 'Poppins', fontSize: 14, color: AppColors.hintGrey)),
-              ]),
+            GestureDetector(
+              onTap: _pickPhoto,
+              child: Container(
+                width: double.infinity,
+                height: 120,
+                decoration: BoxDecoration(
+                    color: AppColors.lightGrey,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.borderGrey)),
+                child: _photos.isEmpty
+                    ? const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                            Icon(Icons.camera_alt_outlined,
+                                color: AppColors.hintGrey, size: 30),
+                            SizedBox(height: 6),
+                            Text('Take Photos',
+                                style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 13,
+                                    color: AppColors.hintGrey)),
+                          ])
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _photos.length,
+                        itemBuilder: (_, i) => Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          width: 100,
+                          child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(_photos[i], fit: BoxFit.cover)),
+                        ),
+                      ),
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -801,6 +826,12 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(initial));
     if (time == null) return null;
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Future<void> _pickPhoto() async {
+    final picker = ImagePicker();
+    final f = await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+    if (f != null && mounted) setState(() => _photos.add(File(f.path)));
   }
 
   Future<void> _submit(BuildContext context) async {
