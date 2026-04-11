@@ -4,6 +4,12 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../models/post_model.dart';
 
+const _figmaPurplePrimary = Color(0xFF520052);
+const _figmaPurpleSecondary = Color(0xFFA3049F);
+const _figmaTagGreen = Color(0xFF1A7815);
+const _figmaChipGray = Color(0xFFD9D9D9);
+const _figmaDivider = Color(0x33000000);
+
 class PostCard extends StatelessWidget {
   final PostModel post;
   final String? currentUserId;
@@ -27,71 +33,47 @@ class PostCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        margin: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.07),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          border: Border(
+            top: BorderSide(color: Colors.black.withValues(alpha: 0.2)),
+            bottom: BorderSide(color: Colors.black.withValues(alpha: 0.2)),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ──────────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+              padding: const EdgeInsets.fromLTRB(28, 18, 22, 0),
               child: _PostHeader(post: post),
             ),
-
-            // ── Title ────────────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-              child: Text(post.title, style: AppTextStyles.h3),
-            ),
-
-            // ── Tags ──────────────────────────────────────────────────────────
-            if (post.tags.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-                child: _TagRow(tags: post.tags, isUrgent: post.isUrgent),
-              ),
-
-            // ── Image(s) ──────────────────────────────────────────────────────
+            const SizedBox(height: 18),
             if (post.imageUrls.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: _ImageCarousel(imageUrls: post.imageUrls),
-              )
+              _ImageCarousel(imageUrls: post.imageUrls)
             else if (post.imageUrl != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Image.network(
-                  post.imageUrl!,
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _ImagePlaceholder(),
-                ),
+              Image.network(
+                post.imageUrl!,
+                width: double.infinity,
+                height: 217,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _ImagePlaceholder(),
               ),
-            // ── Caption ───────────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-              child: _ExpandableCaption(caption: post.caption),
-            ),
-
-            // ── Actions ───────────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+              padding: const EdgeInsets.fromLTRB(28, 10, 28, 0),
               child: _PostActions(
                 post: post,
                 userVote: userVote,
                 onUpvote: onUpvote,
                 onDownvote: onDownvote,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 10, 28, 18),
+              child: _ExpandableCaption(
+                authorUsername: post.authorUsername,
+                isVerified: post.authorIsVerified,
+                caption: post.caption,
               ),
             ),
           ],
@@ -125,7 +107,7 @@ class _ImageCarouselState extends State<_ImageCarousel> {
     return Stack(
       children: [
         SizedBox(
-          height: 220,
+          height: 217,
           child: PageView.builder(
             controller: _ctrl,
             itemCount: widget.imageUrls.length,
@@ -133,7 +115,7 @@ class _ImageCarouselState extends State<_ImageCarousel> {
             itemBuilder: (context, i) => Image.network(
               widget.imageUrls[i],
               width: double.infinity,
-              height: 220,
+              height: 217,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => _ImagePlaceholder(),
             ),
@@ -196,64 +178,67 @@ class _PostHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Avatar
         CircleAvatar(
           radius: 18,
-          backgroundColor: AppColors.chipBg,
+          backgroundColor: const Color(0xFFFFF1F4),
           backgroundImage: post.authorAvatarUrl != null
               ? NetworkImage(post.authorAvatarUrl!)
               : null,
           child: post.authorAvatarUrl == null
-              ? Text(
-                  post.authorUsername.isNotEmpty
-                      ? post.authorUsername[0].toUpperCase()
-                      : '?',
-                  style: AppTextStyles.labelMedium
-                      .copyWith(color: AppColors.primary),
-                )
+              ? const Icon(Icons.public, color: Colors.orange, size: 18)
               : null,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 11),
 
-        // Name + location + time
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    post.authorUsername,
-                    style: AppTextStyles.labelMedium
-                        .copyWith(fontSize: 13, color: AppColors.primary),
+                  Expanded(
+                    child: Text(
+                      post.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: _figmaPurplePrimary,
+                        height: 1.1,
+                      ),
+                    ),
                   ),
-                  if (post.authorIsVerified) ...[
-                    const SizedBox(width: 4),
-                    const Icon(Icons.verified,
-                        color: AppColors.primary, size: 14),
-                  ],
                 ],
               ),
+              const SizedBox(height: 2),
               Text(
                 '${post.barangay}, ${post.city} • ${_timeAgo(post.createdAt)}',
-                style: AppTextStyles.bodySmall,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: _figmaPurpleSecondary,
+                ),
               ),
+              const SizedBox(height: 6),
+              _TagRow(tags: post.tags, isUrgent: post.isUrgent, category: post.category),
             ],
           ),
         ),
-
-        // More options
-        const Icon(Icons.more_horiz, color: AppColors.hintGrey, size: 20),
       ],
     );
   }
 
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}mins ago';
+    if (diff.inHours < 24) return '${diff.inHours}hrs ago';
     return DateFormat('MMM d').format(dt);
   }
 }
@@ -262,72 +247,89 @@ class _PostHeader extends StatelessWidget {
 class _TagRow extends StatelessWidget {
   final List<String> tags;
   final bool isUrgent;
-  const _TagRow({required this.tags, required this.isUrgent});
+  final PostCategory category;
+  const _TagRow({
+    required this.tags,
+    required this.isUrgent,
+    required this.category,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final displayTags = tags.take(3).toList();
-    final overflow = tags.length - 3;
+    final normalizedTags = tags.where((tag) => tag.trim().isNotEmpty).toList();
+    final primaryLabel = normalizedTags.isNotEmpty
+        ? normalizedTags.first
+        : _fallbackCategoryLabel(category, isUrgent);
+    final secondaryTags = normalizedTags.skip(1).take(2).toList();
+    final overflow = normalizedTags.length - 3;
 
     return Wrap(
-      spacing: 6,
-      runSpacing: 4,
+      spacing: 5,
+      runSpacing: 5,
       children: [
-        if (isUrgent) _UrgentChip(),
-        ...displayTags.map((t) => _TagChip(label: t)),
+        _TagChip(label: primaryLabel, isPrimary: true, isUrgent: isUrgent),
+        ...secondaryTags.map((tag) => _TagChip(label: tag)),
         if (overflow > 0) _TagChip(label: '+$overflow', isOverflow: true),
       ],
     );
+  }
+
+  String _fallbackCategoryLabel(PostCategory category, bool isUrgent) {
+    if (isUrgent) return 'Urgent';
+
+    switch (category) {
+      case PostCategory.tasks:
+        return 'Task';
+      case PostCategory.verified:
+        return 'Verified';
+      case PostCategory.news:
+        return 'News';
+      case PostCategory.community:
+        return 'Community';
+    }
   }
 }
 
 class _TagChip extends StatelessWidget {
   final String label;
+  final bool isPrimary;
   final bool isOverflow;
-  const _TagChip({required this.label, this.isOverflow = false});
+  final bool isUrgent;
+  const _TagChip({
+    required this.label,
+    this.isPrimary = false,
+    this.isOverflow = false,
+    this.isUrgent = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: isOverflow ? AppColors.lightGrey : AppColors.chipBg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        '#$label',
-        style: AppTextStyles.bodySmall.copyWith(
-          color: isOverflow ? AppColors.hintGrey : AppColors.primary,
-          fontSize: 11,
-        ),
-      ),
-    );
-  }
-}
-
-class _UrgentChip extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.urgent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.urgent, width: 1),
+        color: isPrimary
+            ? (isUrgent ? AppColors.urgent : _figmaTagGreen)
+            : _figmaChipGray,
+        borderRadius: BorderRadius.circular(99),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.warning_amber_rounded,
-              color: AppColors.urgent, size: 12),
-          const SizedBox(width: 4),
+          if (isPrimary) ...[
+            Icon(
+              isUrgent ? Icons.warning_amber_rounded : Icons.eco,
+              size: 10,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 4),
+          ],
           Text(
-            'URGENT',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.urgent,
-              fontWeight: FontWeight.w700,
+            label,
+            style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 10,
-              letterSpacing: 0.5,
+              fontWeight: FontWeight.w400,
+              color: isPrimary ? Colors.white : Colors.black,
             ),
           ),
         ],
@@ -338,8 +340,14 @@ class _UrgentChip extends StatelessWidget {
 
 // ─── Expandable caption ────────────────────────────────────────────────────────
 class _ExpandableCaption extends StatefulWidget {
+  final String authorUsername;
+  final bool isVerified;
   final String caption;
-  const _ExpandableCaption({required this.caption});
+  const _ExpandableCaption({
+    required this.authorUsername,
+    required this.isVerified,
+    required this.caption,
+  });
 
   @override
   State<_ExpandableCaption> createState() => _ExpandableCaptionState();
@@ -359,15 +367,23 @@ class _ExpandableCaptionState extends State<_ExpandableCaption> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Caption with hashtag colouring
-        _HashtagText(text: preview),
+        _CaptionText(
+          authorUsername: widget.authorUsername,
+          isVerified: widget.isVerified,
+          text: preview,
+        ),
         if (isLong)
-          GestureDetector(
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Text(
-              _expanded ? 'See less' : 'See more',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: GestureDetector(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Text(
+                _expanded ? 'See less' : 'See more',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: _figmaPurplePrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
       ],
@@ -375,28 +391,77 @@ class _ExpandableCaptionState extends State<_ExpandableCaption> {
   }
 }
 
-class _HashtagText extends StatelessWidget {
+class _CaptionText extends StatelessWidget {
+  final String authorUsername;
+  final bool isVerified;
   final String text;
-  const _HashtagText({required this.text});
+  const _CaptionText({
+    required this.authorUsername,
+    required this.isVerified,
+    required this.text,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final parts = text.split(' ');
-    return Text.rich(
-      TextSpan(
-        children: parts.map((word) {
-          if (word.startsWith('#')) {
-            return TextSpan(
-              text: '$word ',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.primary, fontWeight: FontWeight.w500),
-            );
-          }
-          return TextSpan(
-            text: '$word ',
-            style: AppTextStyles.bodySmall,
-          );
-        }).toList(),
+    final parts = text.split(RegExp(r'\s+'));
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 13,
+          height: 1.45,
+          color: Colors.black,
+        ),
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  authorUsername,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    height: 1.45,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (isVerified) ...[
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.verified,
+                    size: 14,
+                    color: _figmaPurpleSecondary,
+                  ),
+                ],
+                const Text(
+                  ' • ',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    height: 1.45,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ...parts.map((word) {
+            if (word.startsWith('#')) {
+              return TextSpan(
+                text: '$word ',
+                style: const TextStyle(
+                  color: _figmaPurplePrimary,
+                  decoration: TextDecoration.underline,
+                ),
+              );
+            }
+            return TextSpan(text: '$word ');
+          }),
+        ],
       ),
     );
   }
@@ -420,7 +485,6 @@ class _PostActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Upvote
         _VoteButton(
           icon: Icons.arrow_upward_rounded,
           count: post.upvotes,
@@ -428,9 +492,7 @@ class _PostActions extends StatelessWidget {
           activeColor: AppColors.primary,
           onTap: onUpvote,
         ),
-        const SizedBox(width: 8),
-
-        // Downvote
+        const SizedBox(width: 6),
         _VoteButton(
           icon: Icons.arrow_downward_rounded,
           count: post.downvotes,
@@ -438,24 +500,22 @@ class _PostActions extends StatelessWidget {
           activeColor: AppColors.error,
           onTap: onDownvote,
         ),
-        const Spacer(),
-
-        // Comments
+        const SizedBox(width: 20),
         Row(
           children: [
             const Icon(Icons.chat_bubble_outline,
-                size: 16, color: AppColors.hintGrey),
+                size: 16, color: Colors.black),
             const SizedBox(width: 4),
             Text(
               _formatCount(post.commentCount),
-              style: AppTextStyles.bodySmall,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 10,
+                color: Colors.black,
+              ),
             ),
           ],
         ),
-        const SizedBox(width: 12),
-
-        // Share
-        const Icon(Icons.share_outlined, size: 16, color: AppColors.hintGrey),
       ],
     );
   }
@@ -483,29 +543,38 @@ class _VoteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final outlineColor = isActive ? activeColor : Colors.black.withValues(alpha: 0.7);
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        constraints: const BoxConstraints(minHeight: 34, minWidth: 46),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
         decoration: BoxDecoration(
-          color: isActive ? activeColor.withValues(alpha: 0.1) : AppColors.lightGrey,
-          borderRadius: BorderRadius.circular(20),
+          color: isActive ? activeColor.withValues(alpha: 0.16) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: outlineColor,
+            width: 1.6,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 14,
-              color: isActive ? activeColor : AppColors.hintGrey,
+              size: 19,
+              color: outlineColor,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
             Text(
               _formatCount(count),
-              style: AppTextStyles.bodySmall.copyWith(
-                color: isActive ? activeColor : AppColors.hintGrey,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                color: outlineColor,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
               ),
             ),
           ],
@@ -526,7 +595,7 @@ class _ImagePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 200,
+      height: 217,
       color: AppColors.lightGrey,
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,

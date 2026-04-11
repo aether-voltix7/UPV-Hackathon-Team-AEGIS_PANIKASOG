@@ -149,27 +149,33 @@ class _BottomBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, -4))
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 4,
+            offset: const Offset(0, -6),
+          )
         ],
       ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 64,
+          height: 69,
           child: Row(children: [
             _NavItem(
                 icon: Icons.home_outlined,
                 activeIcon: Icons.home,
                 label: 'Home',
                 isActive: selectedIndex == 0,
+                isLeftEdge: true,
                 onTap: () => onTap(0)),
             _NavItem(
-                icon: Icons.assignment_outlined,
-                activeIcon: Icons.assignment,
+                icon: Icons.task_alt_outlined,
+                activeIcon: Icons.task_alt,
                 label: 'Tasks',
                 isActive: selectedIndex == 1,
                 onTap: () => onTap(1)),
@@ -177,47 +183,45 @@ class _BottomBar extends StatelessWidget {
               child: GestureDetector(
                 onTap: () => onTap(2),
                 child: Center(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    width: 52,
-                    height: 52,
+                  child: Transform.translate(
+                    offset: const Offset(0, -7),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      width: 69,
+                      height: 69,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: fabOpen
-                            ? [const Color(0xFF7B003A), AppColors.primary]
-                            : AppColors.fabGradient,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: const Color(0xFFC10058),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.35),
-                            blurRadius: fabOpen ? 18 : 10,
-                            offset: const Offset(0, 4))
+                          color: const Color(0xFFC10058).withValues(alpha: 0.35),
+                          blurRadius: fabOpen ? 18 : 12,
+                          offset: const Offset(0, 4),
+                        )
                       ],
                     ),
-                    child: AnimatedRotation(
-                      turns: fabOpen ? 0.125 : 0,
-                      duration: const Duration(milliseconds: 250),
-                      child:
-                          const Icon(Icons.add, color: AppColors.white, size: 28),
+                      child: const Icon(
+                        Icons.add,
+                        color: AppColors.white,
+                        size: 44,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
             _NavItem(
-                icon: Icons.assignment_outlined,
-                activeIcon: Icons.assignment,
+                icon: Icons.chat_bubble_outline,
+                activeIcon: Icons.chat_bubble,
                 label: 'Reports',
                 isActive: selectedIndex == 3,
                 onTap: () => onTap(3)),
             _NavItem(
-                icon: Icons.leaderboard_outlined,
-                activeIcon: Icons.leaderboard,
+                icon: Icons.bar_chart_outlined,
+                activeIcon: Icons.bar_chart,
                 label: 'Rankings',
                 isActive: selectedIndex == 4,
+                isRightEdge: true,
                 onTap: () => onTap(4)),
           ]),
         ),
@@ -230,12 +234,16 @@ class _NavItem extends StatelessWidget {
   final IconData icon, activeIcon;
   final String label;
   final bool isActive;
+  final bool isLeftEdge;
+  final bool isRightEdge;
   final VoidCallback onTap;
   const _NavItem(
       {required this.icon,
       required this.activeIcon,
       required this.label,
       required this.isActive,
+      this.isLeftEdge = false,
+      this.isRightEdge = false,
       required this.onTap});
 
   @override
@@ -243,21 +251,45 @@ class _NavItem extends StatelessWidget {
         child: GestureDetector(
           onTap: onTap,
           behavior: HitTestBehavior.opaque,
-          child:
-              Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(isActive ? activeIcon : icon,
-                color: isActive ? AppColors.primary : AppColors.hintGrey,
-                size: 22),
-            const SizedBox(height: 2),
-            Text(label,
-                style: TextStyle(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            decoration: isActive
+                ? BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Color(0xFFDF0B33), Color(0xFFAB0857)],
+                    ),
+                    borderRadius: BorderRadius.only(
+                      topLeft:
+                          isLeftEdge ? const Radius.circular(20) : Radius.zero,
+                      topRight:
+                          isRightEdge ? const Radius.circular(20) : Radius.zero,
+                    ),
+                  )
+                : null,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isActive ? activeIcon : icon,
+                  color: isActive ? AppColors.white : Colors.black,
+                  size: 31,
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  label,
+                  style: TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 10,
-                    fontWeight:
-                        isActive ? FontWeight.w600 : FontWeight.w400,
-                    color:
-                        isActive ? AppColors.primary : AppColors.hintGrey)),
-          ]),
+                    fontSize: 12,
+                    height: 1,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                    color: isActive ? AppColors.white : Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
 }

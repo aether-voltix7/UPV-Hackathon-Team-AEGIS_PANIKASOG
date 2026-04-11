@@ -21,6 +21,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const Color _figmaPurple = Color(0xFF520052);
+
   final ScrollController _scrollCtrl = ScrollController();
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = '';
@@ -91,6 +93,57 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget _buildStickyFilterRow() {
+    return Container(
+      color: const Color(0xFFFCF5F7),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: _FilterChip(
+              label: 'All',
+              isSelected: _selectedFilter == FeedFilter.all,
+              onSelected: () => setState(() => _selectedFilter = FeedFilter.all),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            flex: 2,
+            child: _FilterChip(
+              label: 'Community',
+              isSelected: _selectedFilter == FeedFilter.community,
+              onSelected: () => setState(() => _selectedFilter = FeedFilter.community),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _FilterChip(
+              label: 'Verified',
+              isSelected: _selectedFilter == FeedFilter.verified,
+              onSelected: () => setState(() => _selectedFilter = FeedFilter.verified),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _FilterChip(
+              label: 'Tasks',
+              isSelected: _selectedFilter == FeedFilter.tasks,
+              onSelected: () => setState(() => _selectedFilter = FeedFilter.tasks),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _FilterChip(
+              label: 'News',
+              isSelected: _selectedFilter == FeedFilter.news,
+              onSelected: () => setState(() => _selectedFilter = FeedFilter.news),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final postProvider = context.watch<PostProvider>();
@@ -156,8 +209,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Home',
                       style: TextStyle(
                         fontSize: 28,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF5A2A66),
+                        fontWeight: FontWeight.w500,
+                        color: _figmaPurple,
                       ),
                     ),
                   ),
@@ -172,12 +225,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(99),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 0),
                                 ),
                               ],
                             ),
@@ -186,30 +239,42 @@ class _HomeScreenState extends State<HomeScreen> {
                               onChanged: (value) => setState(() => _searchQuery = value),
                               decoration: InputDecoration(
                                 hintText: 'Search posts...',
-                                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                                prefixIcon: const Icon(Icons.search, color: Colors.purpleAccent),
+                                hintStyle: TextStyle(
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                prefixIcon: const Icon(Icons.search, color: _figmaPurple, size: 15),
+                                prefixIconConstraints: const BoxConstraints(minWidth: 36),
                                 border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
                               ),
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF111111)),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6B225E),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF6B225E).withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              )
-                            ]
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.tune, color: Colors.white, size: 20),
-                            onPressed: () {},
+                        SizedBox(
+                          width: 31,
+                          height: 33,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: _figmaPurple,
+                              borderRadius: BorderRadius.circular(99),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _figmaPurple.withValues(alpha: 0.35),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.tune, color: Colors.white, size: 16),
+                              onPressed: () {},
+                            ),
                           ),
                         ),
                       ],
@@ -217,45 +282,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  sliver: SliverToBoxAdapter(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _FilterChip(
-                            label: 'All',
-                            isSelected: _selectedFilter == FeedFilter.all,
-                            onSelected: () => setState(() => _selectedFilter = FeedFilter.all),
-                          ),
-                          const SizedBox(width: 8),
-                          _FilterChip(
-                            label: 'Community',
-                            isSelected: _selectedFilter == FeedFilter.community,
-                            onSelected: () => setState(() => _selectedFilter = FeedFilter.community),
-                          ),
-                          const SizedBox(width: 8),
-                          _FilterChip(
-                            label: 'Verified',
-                            isSelected: _selectedFilter == FeedFilter.verified,
-                            onSelected: () => setState(() => _selectedFilter = FeedFilter.verified),
-                          ),
-                          const SizedBox(width: 8),
-                          _FilterChip(
-                            label: 'Tasks',
-                            isSelected: _selectedFilter == FeedFilter.tasks,
-                            onSelected: () => setState(() => _selectedFilter = FeedFilter.tasks),
-                          ),
-                          const SizedBox(width: 8),
-                          _FilterChip(
-                            label: 'News',
-                            isSelected: _selectedFilter == FeedFilter.news,
-                            onSelected: () => setState(() => _selectedFilter = FeedFilter.news),
-                          ),
-                        ],
-                      ),
-                    ),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _StickyHeaderDelegate(
+                    minExtent: 50,
+                    maxExtent: 50,
+                    child: _buildStickyFilterRow(),
                   ),
                 ),
 
@@ -494,29 +526,64 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = const Color(0xFFC2185B);
+    const activeBorder = Color(0xFFDF0B33);
+    const activeStart = Color(0xFFDF0B33);
+    const activeEnd = Color(0xFFAB0857);
 
     return GestureDetector(
       onTap: onSelected,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        height: 30,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          gradient: isSelected
+              ? const LinearGradient(colors: [activeStart, activeEnd])
+              : null,
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(99),
           border: Border.all(
-            color: activeColor,
-            width: 1.5,
+            color: activeBorder,
+            width: 1,
           ),
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            fontSize: 13,
+            color: isSelected ? Colors.white : const Color(0xFF111111),
+            fontWeight: FontWeight.w500,
+            fontSize: 11,
+            height: 1.1,
           ),
         ),
       ),
     );
+  }
+}
+
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double minExtent;
+  final double maxExtent;
+  final Widget child;
+
+  _StickyHeaderDelegate({
+    required this.minExtent,
+    required this.maxExtent,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickyHeaderDelegate oldDelegate) {
+    return oldDelegate.minExtent != minExtent ||
+        oldDelegate.maxExtent != maxExtent ||
+        oldDelegate.child != child;
   }
 }
