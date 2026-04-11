@@ -12,6 +12,7 @@ import 'screens/auth/landing_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/rankings/rankings_screen.dart';
 import 'firebase_options.dart';
 import 'providers/post_provider.dart';
 import 'services/post_service.dart';
@@ -61,6 +62,7 @@ class PanikasogApp extends StatelessWidget {
           '/landing': (_) => const LandingScreen(),
           '/profile': (_) => const ProfileScreen(),
           '/settings': (_) => const SettingsScreen(),
+          '/rankings': (_) => const RankingsScreen(),
         },
       ),
     );

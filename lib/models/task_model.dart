@@ -40,6 +40,8 @@ class TaskModel {
   final double? longitude;
   final String? verificationNote;
   final List<String> verificationPhotos;
+  final String? completionSummary;
+  final String? issues;
 
   const TaskModel({
     required this.id,
@@ -66,6 +68,8 @@ class TaskModel {
     this.longitude,
     this.verificationNote,
     this.verificationPhotos = const [],
+    this.completionSummary,
+    this.issues,
   });
 
   factory TaskModel.fromFirestore(DocumentSnapshot doc) {
@@ -107,6 +111,8 @@ class TaskModel {
       verificationNote: d['verificationNote'],
       verificationPhotos:
           List<String>.from(d['verificationPhotos'] ?? []),
+      completionSummary: d['completionSummary'],
+      issues: d['issues'],
     );
   }
 
@@ -136,6 +142,8 @@ class TaskModel {
         'longitude': longitude,
         'verificationNote': verificationNote,
         'verificationPhotos': verificationPhotos,
+        'completionSummary': completionSummary,
+        'issues': issues,
       };
 
   /// Whether a specific user has accepted this task.
@@ -202,6 +210,8 @@ class TaskModel {
     String? verificationNote,
     List<String>? verificationPhotos,
     int? volunteersAccepted,
+    String? completionSummary,
+    String? issues,
   }) {
     return TaskModel(
       id: id,
@@ -228,6 +238,8 @@ class TaskModel {
       longitude: longitude,
       verificationNote: verificationNote ?? this.verificationNote,
       verificationPhotos: verificationPhotos ?? this.verificationPhotos,
+      completionSummary: completionSummary ?? this.completionSummary,
+      issues: issues ?? this.issues,
     );
   }
 
@@ -237,7 +249,7 @@ class TaskModel {
           id: 'task_1',
           title: 'Medical Assistance for Injured Individuals',
           description:
-              'Provide first aid and medical support to flood victims in Brgy. Rizal.',
+              'Provide first aid and medical support to flood victims in Brgy. Rizal. Set up a triage station to assess and prioritize patients. Coordinate with nurses and doctors to treat minor wounds, sprains, and dehydration. Ensure all patients are recorded and directed to appropriate facilities if needed.',
           barangay: 'Brgy. Rizal',
           city: 'Iloilo City',
           category: TaskCategory.medicalAssistance,
@@ -256,7 +268,7 @@ class TaskModel {
           id: 'task_2',
           title: 'Debris Clearing – Brgy. San Pedro',
           description:
-              'Clear flood debris from main road and drainage canals.',
+              'Clear flood debris from main road and drainage canals. Remove fallen branches, mud, and displaced materials blocking traffic. Organize volunteers to sweep and rake debris into collection points. Ensure proper drainage by clearing canal entries to prevent water stagnation.',
           barangay: 'Brgy. San Pedro',
           city: 'Iloilo City',
           category: TaskCategory.cleanupRecovery,
@@ -274,7 +286,7 @@ class TaskModel {
           id: 'task_3',
           title: 'Relief Pack Distribution – Evacuation Center',
           description:
-              'Sort and distribute food packs, hygiene kits, and clothing.',
+              'Sort and distribute food packs, hygiene kits, and clothing to displaced families. Organize supplies by category on tables for easy access. Check family lists against inventory to match needs. Distribute with compassion and document recipients for tracking.',
           barangay: 'Brgy. Molo',
           city: 'Iloilo City',
           category: TaskCategory.reliefDistribution,

@@ -8,7 +8,7 @@ const _figmaPurplePrimary = Color(0xFF520052);
 const _figmaPurpleSecondary = Color(0xFFA3049F);
 const _figmaTagGreen = Color(0xFF1A7815);
 const _figmaChipGray = Color(0xFFD9D9D9);
-const _figmaDivider = Color(0x33000000);
+
 
 class PostCard extends StatelessWidget {
   final PostModel post;

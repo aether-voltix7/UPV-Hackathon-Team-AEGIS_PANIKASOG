@@ -28,6 +28,9 @@ class AppColors {
   static const Color cardShadow    = Color(0x1A000000);
 
   // Gradient stops
+  static const Color gradientStart = Color(0xFFDF0B33);
+  static const Color gradientEnd = Color(0xFFAB0857);
+  
   static const List<Color> splashGradient = [
     Color(0xFFFF4081),
     Color(0xFFB1004E),

@@ -557,7 +557,9 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  @override
   final double minExtent;
+  @override
   final double maxExtent;
   final Widget child;
 

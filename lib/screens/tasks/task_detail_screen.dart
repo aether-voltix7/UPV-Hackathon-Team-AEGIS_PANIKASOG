@@ -13,6 +13,7 @@ import '../../models/task_model.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'task_map_screen.dart';
+import 'task_in_progress_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TASK DETAIL SCREEN
@@ -239,7 +240,7 @@ class TaskDetailScreen extends StatelessWidget {
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => TaskProgressScreen(task: task)),
+                          builder: (_) => TaskInProgressScreen(task: task)),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
@@ -471,7 +472,7 @@ class TaskNavigateScreen extends StatelessWidget {
   Future<void> _checkIn(BuildContext context) async {
     if (task.latitude == null || task.longitude == null) {
       Navigator.push(context,
-          MaterialPageRoute(builder: (_) => TaskProgressScreen(task: task)));
+          MaterialPageRoute(builder: (_) => TaskInProgressScreen(task: task)));
       return;
     }
 
@@ -513,7 +514,7 @@ class TaskNavigateScreen extends StatelessWidget {
 
       if (distance <= 50) {
         Navigator.push(context,
-            MaterialPageRoute(builder: (_) => TaskProgressScreen(task: task)));
+            MaterialPageRoute(builder: (_) => TaskInProgressScreen(task: task)));
       } else {
         final metres = distance.toStringAsFixed(0);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -528,7 +529,7 @@ class TaskNavigateScreen extends StatelessWidget {
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (_) => TaskProgressScreen(task: task)));
+                  builder: (_) => TaskInProgressScreen(task: task)));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Location error: $e')),
