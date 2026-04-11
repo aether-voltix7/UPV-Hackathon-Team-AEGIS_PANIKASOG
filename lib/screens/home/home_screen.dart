@@ -8,6 +8,7 @@ import '../../providers/post_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/vote_dialog.dart';
+import '../../widgets/app_logo.dart';
 import '../tasks/task_detail_screen.dart';
 import 'post_detail_screen.dart';
 import '../profile/profile_screen.dart';
@@ -162,16 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
         titleSpacing: 16,
         title: Row(
           children: [
-            const Icon(Icons.cyclone, color: Color(0xFFC2185B), size: 28),
-            const SizedBox(width: 8),
-            Text(
-              'PANIKASOG',
-              style: AppTextStyles.h1.copyWith(
-                fontSize: 20,
-                color: const Color(0xFFC2185B),
-                letterSpacing: 1.5,
-              ),
-            ),
+            const AppLogo(iconSize: 100),
           ],
         ),
         actions: [

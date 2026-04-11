@@ -8,6 +8,7 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../models/report_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/app_logo.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 
@@ -62,16 +63,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         titleSpacing: 16,
         title: Row(
           children: [
-            const Icon(Icons.cyclone, color: Color(0xFFC2185B), size: 28),
-            const SizedBox(width: 8),
-            Text(
-              'PANIKASOG',
-              style: AppTextStyles.h1.copyWith(
-                fontSize: 20,
-                color: const Color(0xFFC2185B),
-                letterSpacing: 1.5,
-              ),
-            ),
+            const AppLogo(iconSize: 100),
           ],
         ),
         actions: [
@@ -102,32 +94,53 @@ class _ReportsScreenState extends State<ReportsScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: StreamBuilder<List<ReportModel>>(
-        stream: _reportsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(32, 16, 0, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Reports',
+                style: TextStyle(
+                  fontFamily: 'Onest',
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF520052),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<List<ReportModel>>(
+              stream: _reportsStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
-          final reports = snapshot.data ?? [];
-          final filtered = _applyFilters(reports);
+                final reports = snapshot.data ?? [];
+                final filtered = _applyFilters(reports);
 
-          if (filtered.isNotEmpty &&
-              _selectedReportId != null &&
-              !filtered.any((r) => r.id == _selectedReportId)) {
-            _selectedReportId = filtered.first.id;
-          }
-          if (filtered.isEmpty) _selectedReportId = null;
+                if (filtered.isNotEmpty &&
+                    _selectedReportId != null &&
+                    !filtered.any((r) => r.id == _selectedReportId)) {
+                  _selectedReportId = filtered.first.id;
+                }
+                if (filtered.isEmpty) _selectedReportId = null;
 
-          return _mapExpanded
-              ? _buildExpandedLayout(filtered)
-              : _buildDefaultLayout(filtered);
-        },
+                return _mapExpanded
+                    ? _buildExpandedLayout(filtered)
+                    : _buildDefaultLayout(filtered);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

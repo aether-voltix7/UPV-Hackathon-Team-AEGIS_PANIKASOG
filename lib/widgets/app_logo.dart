@@ -8,7 +8,7 @@ class AppLogo extends StatelessWidget {
 
   const AppLogo({
     super.key,
-    this.iconSize = 28,
+    this.iconSize = 100,
     this.darkBackground = false,
   });
 
@@ -20,7 +20,8 @@ class AppLogo extends StatelessWidget {
       children: [
         // Logo
         SizedBox(
-          width: 200,
+          width: iconSize,
+          height: iconSize,
           child: Image.asset(
             'assets/images/panikasog-logo.png',
             fit: BoxFit.contain,

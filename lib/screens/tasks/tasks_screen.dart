@@ -6,7 +6,10 @@ import '../../core/constants/text_styles.dart';
 import '../../models/task_model.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/app_logo.dart';
 import 'task_detail_screen.dart';
+import '../profile/profile_screen.dart';
+import '../settings/settings_screen.dart';
 
 IconData _categoryIcon(TaskCategory cat) {
   switch (cat) {
@@ -63,60 +66,123 @@ class _TasksScreenState extends State<TasksScreen>
       appBar: AppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
-        title: const Text('Tasks', style: AppTextStyles.h2),
-        bottom: TabBar(
-          controller: _tabs,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.hintGrey,
-          indicatorColor: AppColors.primary,
-          labelStyle: AppTextStyles.labelMedium,
-          tabs: [
-            Tab(text: 'Available (${provider.openTasks.length})'),
-            Tab(text: 'My Tasks (${myTasks.length})'),
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            const AppLogo(iconSize: 100),
           ],
         ),
+        actions: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.grey[300],
+              backgroundImage: currentUserId != null
+                  ? NetworkImage(context.read<AuthProvider>().user?.avatarUrl ?? 'https://via.placeholder.com/150')
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.black87, size: 26),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth > 800) {
-                  // Tablet: side-by-side view
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: _TaskListView(
-                          tasks: provider.openTasks,
-                          emptyMsg: 'No available tasks right now.',
+          : DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 16, 0, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Tasks',
+                        style: TextStyle(
+                          fontFamily: 'Onest',
+                          fontSize: 24,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF520052),
                         ),
                       ),
-                      Expanded(
-                        child: Container(
-                          color: AppColors.white,
-                          child: _TaskListView(
-                            tasks: myTasks,
-                            emptyMsg: 'You have not accepted any tasks yet.',
+                    ),
+                  ),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                      if (constraints.maxWidth > 800) {
+                        // Tablet: side-by-side view
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _TaskListView(
+                                tasks: provider.openTasks,
+                                emptyMsg: 'No available tasks right now.',
+                              ),
+                            ),
+                            Expanded(
+                              child: Container(
+                                color: AppColors.white,
+                                child: _TaskListView(
+                                  tasks: myTasks,
+                                  emptyMsg: 'You have not accepted any tasks yet.',
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      // Mobile: tabbed view
+                      return Column(
+                        children: [
+                          TabBar(
+                            controller: _tabs,
+                            labelColor: AppColors.primary,
+                            unselectedLabelColor: AppColors.hintGrey,
+                            indicatorColor: AppColors.primary,
+                            labelStyle: AppTextStyles.labelMedium,
+                            tabs: [
+                              Tab(text: 'Available (${provider.openTasks.length})'),
+                              Tab(text: 'My Tasks (${myTasks.length})'),
+                            ],
                           ),
-                        ),
-                      ),
-                    ],
-                  );
-                }
-                // Mobile: tabs
-                return TabBarView(
-                  controller: _tabs,
-                  children: [
-                    _TaskListView(
-                      tasks: provider.openTasks,
-                      emptyMsg: 'No available tasks right now.',
+                          Expanded(
+                            child: TabBarView(
+                              controller: _tabs,
+                              children: [
+                                _TaskListView(
+                                  tasks: provider.openTasks,
+                                  emptyMsg: 'No available tasks right now.',
+                                ),
+                                _TaskListView(
+                                  tasks: myTasks,
+                                  emptyMsg: 'You have not accepted any tasks yet.',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                      },
                     ),
-                    _TaskListView(
-                      tasks: myTasks,
-                      emptyMsg: 'You have not accepted any tasks yet.',
-                    ),
-                  ],
-                );
-              },
+                  ),
+                ],
+              ),
             ),
     );
   }

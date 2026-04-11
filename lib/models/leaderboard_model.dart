@@ -21,6 +21,9 @@ class LeaderboardEntry {
     required this.rank,
   });
 
+  /// Calculate level from points (1000 EXP = 1 level, minimum level 1)
+  int get level => (points ~/ 1000) + 1;
+
   factory LeaderboardEntry.fromFirestore(DocumentSnapshot doc, int rank) {
     final d = doc.data() as Map<String, dynamic>;
     return LeaderboardEntry(
