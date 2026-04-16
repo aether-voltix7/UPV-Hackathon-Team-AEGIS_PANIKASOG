@@ -1,14 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'package:geolocator/geolocator.dart';
 import '../models/post_model.dart';
 import '../models/urgent_task_model.dart';
 
 class PostService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // ─── Feed ──────────────────────────────────────────────────────────────────
+  // Hardcoded Iloilo City landmarks (LatLng)
+  static const List<Map<String, dynamic>> _landmarks = [
+    {'name': 'Iloilo City Hall', 'lat': 10.7202, 'lng': 122.5621},
+    {'name': 'St. Paul\'s Hospital', 'lat': 10.7189, 'lng': 122.5675},
+    {'name': 'Iloilo Mission Hospital', 'lat': 10.7132, 'lng': 122.5633},
+    {'name': 'Iloilo Provincial Capitol', 'lat': 10.7043, 'lng': 122.5667},
+  ];
 
+  // Keyword sets
+  static const List<String> _urgentKeywords = [
+    'fire', 'flood', 'earthquake', 'typhoon', 'rescue', 'evacuate', 'help',
+    'emergency', 'stranded', 'injured'
+  ];
+  static const List<String> _suspiciousKeywords = [
+    'rumor', 'hearsay', 'maybe', 'not sure', 'fake', 'hoax', 'allegedly'
+  ];
+
+  // ─── Feed ──────────────────────────────────────────────────────────────────
   Query<Map<String, dynamic>> feedQuery({PostCategory? category}) {
     Query<Map<String, dynamic>> q =
         _db.collection('posts').orderBy('createdAt', descending: true);
@@ -24,7 +41,7 @@ class PostService {
     return PostModel.fromFirestore(doc);
   }
 
-  // ─── Create Post (fixed image upload) ──────────────────────────────────────
+  // ─── Create Post with Smart Proactive Filter ──────────────────────────────
   Future<PostModel> createPost({
     required String authorId,
     required String authorUsername,
@@ -40,6 +57,7 @@ class PostService {
     bool isUrgent = false,
     List<String> urgentReasons = const [],
     List<File> imageFiles = const [],
+    Position? userLocation, // NEW: location from provider
   }) async {
     List<String> imageUrls = [];
 
@@ -63,6 +81,10 @@ class PostService {
       imageUrls.add(url);
     }
 
+    // --- SMART PROACTIVE FILTER ANALYSIS ---
+    final fullContent = "$title $caption";
+    final analysis = _analyzeContent(fullContent, userLocation);
+
     final docRef = _db.collection('posts').doc();
     final post = PostModel(
       id: docRef.id,
@@ -83,13 +105,62 @@ class PostService {
       isUrgent: isUrgent,
       urgentReasons: urgentReasons,
       createdAt: DateTime.now(),
+      isValidated: analysis['isValidated'],
+      validationSource: analysis['source'],
     );
     await docRef.set(post.toFirestore());
     return post;
   }
 
-  // ─── Voting ────────────────────────────────────────────────────────────────
+  // ─── Private Analysis Method ──────────────────────────────────────────────
+  Map<String, dynamic> _analyzeContent(String content, Position? userLocation) {
+    final lowerContent = content.toLowerCase();
 
+    // 1. Keyword Analysis
+    bool hasUrgentKeyword = _urgentKeywords.any((kw) => lowerContent.contains(kw));
+    bool hasSuspiciousKeyword = _suspiciousKeywords.any((kw) => lowerContent.contains(kw));
+
+    // 2. Pattern Checks
+    int exclamationCount = content.split('').where((c) => c == '!').length;
+    bool excessiveExclamations = exclamationCount > 3;
+    bool isAllUppercase = content == content.toUpperCase() &&
+        content.trim().isNotEmpty &&
+        content.contains(RegExp(r'[A-Z]'));
+
+    // 3. Geofencing Logic (only if userLocation is provided)
+    bool nearLandmark = false;
+    String landmarkName = '';
+    if (userLocation != null) {
+      for (final landmark in _landmarks) {
+        final distance = Geolocator.distanceBetween(
+          userLocation.latitude,
+          userLocation.longitude,
+          landmark['lat'],
+          landmark['lng'],
+        );
+        if (distance <= 200) { // within 200 meters
+          nearLandmark = true;
+          landmarkName = landmark['name'];
+          break;
+        }
+      }
+    }
+
+    // Decision Logic
+    if (nearLandmark) {
+      return {'isValidated': true, 'source': 'Verified Location ($landmarkName)'};
+    } else if (hasUrgentKeyword && !hasSuspiciousKeyword) {
+      return {'isValidated': true, 'source': 'Urgent Keyword Match'};
+    } else if (excessiveExclamations || isAllUppercase) {
+      return {'isValidated': false, 'source': 'Suspicious Pattern (ALL CAPS or !!!)'};
+    } else if (hasSuspiciousKeyword) {
+      return {'isValidated': false, 'source': 'Suspicious Keyword Detected'};
+    } else {
+      return {'isValidated': false, 'source': 'Default - Needs Review'};
+    }
+  }
+
+  // ─── Voting ────────────────────────────────────────────────────────────────
   Future<String?> getUserVote(String postId, String userId) async {
     final doc = await _db
         .collection('posts')
@@ -143,7 +214,6 @@ class PostService {
   }
 
   // ─── Urgent Tasks Stream ──────────────────────────────────────────────────
-
   Stream<List<UrgentTaskModel>> urgentTasksStream() {
     return _db
         .collection('tasks')
@@ -157,7 +227,7 @@ class PostService {
             .toList());
   }
 
-  // ─── User Posts Stream (single definition) ────────────────────────────────
+  // ─── User Posts Stream ────────────────────────────────────────────────────
   Stream<List<PostModel>> getPostsByUser(String userId) {
     return _db
         .collection('posts')
@@ -168,7 +238,7 @@ class PostService {
             snapshot.docs.map((doc) => PostModel.fromFirestore(doc)).toList());
   }
 
-  // ─── Mock data for development ────────────────────────────────────────────
+  // ─── Mock data for development (unchanged) ────────────────────────────────
   static List<PostModel> get mockPosts => [
         PostModel(
           id: 'mock_1',

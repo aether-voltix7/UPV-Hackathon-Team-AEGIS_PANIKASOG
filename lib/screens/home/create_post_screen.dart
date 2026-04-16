@@ -34,7 +34,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   final List<File> _selectedImages = [];
   PostCategory _selectedCategory = PostCategory.community;
-  final List<String> _tags = []; // made final
+  final List<String> _tags = [];
   bool _isGeneratingCaption = false;
 
   static const _categories = [
@@ -59,7 +59,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   void initState() {
     super.initState();
-    // 2. Listen for when the user clicks the text field
     _locationFocus.addListener(() {
       setState(() {
         _showMap = _locationFocus.hasFocus;
@@ -113,12 +112,55 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
   }
 
+  // NEW: Helper to get current GPS position (returns null if unavailable)
+  Future<Position?> _getCurrentLocation() async {
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('Location services disabled');
+        return null;
+      }
+
+      // Check and request permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission != LocationPermission.whileInUse &&
+            permission != LocationPermission.always) {
+          debugPrint('Location permission denied');
+          return null;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('Location permission permanently denied');
+        return null;
+      }
+
+      // Get current position with high accuracy
+      const locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.high,
+      );
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
+      );
+      return position;
+    } catch (e) {
+      debugPrint('Error getting location: $e');
+      return null;
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     final auth = context.read<AuthProvider>();
     final user = auth.user;
     if (user == null) return;
+
+    // --- NEW: Get current location for Smart Proactive Filter ---
+    final Position? userLocation = await _getCurrentLocation();
 
     final post = await context.read<PostProvider>().createPost(
           authorId: user.uid,
@@ -135,6 +177,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           imageFiles: _selectedImages,
           tags: _tags,
           category: _selectedCategory,
+          userLocation: userLocation, // ✅ Pass location for geofencing
         );
 
     if (post != null && mounted) {
@@ -148,22 +191,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
-// auto-detect current location
   Future<void> _handleLocationDetection() async {
     try {
-      // 1. Check if GPS service is actually ON
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        // Prompt user to turn on GPS
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content:
-                  Text('Please enable location services in your settings.')),
+              content: Text('Please enable location services in your settings.')),
         );
         return;
       }
 
-      // 2. Handle Permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -171,25 +209,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        // User has permanently denied, they'll need to go to app settings
         return;
       }
 
-      // 3. Get Position
-      _locationCtrl.text = "Detecting..."; // Show loading state
-     const locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-    );
-    Position position = await Geolocator.getCurrentPosition(
-      locationSettings: locationSettings,
-    );
+      _locationCtrl.text = "Detecting...";
+      const locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.high,
+      );
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
+      );
 
-      // 4. Update UI
       setState(() {
         _locationCtrl.text =
             "${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";
-
-        // Update Map's camera to jump to the user's location
         _mapController?.animateCamera(
           CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
         );
@@ -222,7 +255,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Photo picker ───────────────────────────────────────────────
+              // Photo picker
               GestureDetector(
                 onTap: _pickImage,
                 child: Column(
@@ -238,18 +271,27 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               return GestureDetector(
                                 onTap: _pickImage,
                                 child: Container(
-                                  width: 120, height: 200,
+                                  width: 120,
+                                  height: 200,
                                   margin: const EdgeInsets.only(right: 8),
                                   decoration: BoxDecoration(
                                     color: AppColors.lightGrey,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(color: AppColors.borderGrey),
                                   ),
-                                  child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                    Icon(Icons.add_photo_alternate_outlined, color: AppColors.hintGrey, size: 32),
-                                    SizedBox(height: 8),
-                                    Text('Add More', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, color: AppColors.hintGrey)),
-                                  ]),
+                                  child: const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.add_photo_alternate_outlined,
+                                          color: AppColors.hintGrey, size: 32),
+                                      SizedBox(height: 8),
+                                      Text('Add More',
+                                          style: TextStyle(
+                                              fontFamily: 'Poppins',
+                                              fontSize: 12,
+                                              color: AppColors.hintGrey)),
+                                    ],
+                                  ),
                                 ),
                               );
                             }
@@ -257,16 +299,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               children: [
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(16),
-                                  child: Image.file(_selectedImages[i], width: 160, height: 200, fit: BoxFit.cover),
+                                  child: Image.file(_selectedImages[i],
+                                      width: 160,
+                                      height: 200,
+                                      fit: BoxFit.cover),
                                 ),
                                 Positioned(
-                                  top: 8, right: 8,
+                                  top: 8,
+                                  right: 8,
                                   child: GestureDetector(
-                                    onTap: () => setState(() => _selectedImages.removeAt(i)),
+                                    onTap: () =>
+                                        setState(() => _selectedImages.removeAt(i)),
                                     child: Container(
                                       padding: const EdgeInsets.all(6),
-                                      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                      decoration: const BoxDecoration(
+                                          color: Colors.black54,
+                                          shape: BoxShape.circle),
+                                      child: const Icon(Icons.close,
+                                          color: Colors.white, size: 16),
                                     ),
                                   ),
                                 ),
@@ -277,24 +327,36 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       ),
                     ] else
                       Container(
-                        width: double.infinity, height: 140,
+                        width: double.infinity,
+                        height: 140,
                         decoration: BoxDecoration(
                           color: AppColors.lightGrey,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.borderGrey),
                         ),
-                        child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Icon(Icons.camera_alt_outlined, color: AppColors.hintGrey, size: 32),
-                          SizedBox(height: 8),
-                          Text('Take Photos', style: TextStyle(fontFamily: 'Poppins', fontSize: 14, color: AppColors.hintGrey, fontWeight: FontWeight.w500)),
-                        ]),
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.camera_alt_outlined,
+                                color: AppColors.hintGrey, size: 32),
+                            SizedBox(height: 8),
+                            Text(
+                              'Take Photos',
+                              style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 14,
+                                  color: AppColors.hintGrey,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
                       ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
-              // ── Title ──────────────────────────────────────────────────────
+              // Title
               AppTextField(
                 label: 'Title',
                 hint: 'e.g. Successful Cleanup Drive...',
@@ -307,7 +369,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
               const SizedBox(height: 16),
 
-              // ── Caption + Auto-Caption ─────────────────────────────────────
+              // Caption + Auto-Caption
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -337,7 +399,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       String filtered = _filterText(value);
                       if (filtered != value) {
                         _captionCtrl.text = filtered;
-                        _captionCtrl.selection = TextSelection.collapsed(offset: filtered.length);
+                        _captionCtrl.selection =
+                            TextSelection.collapsed(offset: filtered.length);
                       }
                     },
                     decoration: const InputDecoration(
@@ -354,7 +417,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     },
                   ),
                   const SizedBox(height: 8),
-                  // Auto-Caption button
                   GestureDetector(
                     onTap: _simulateAutoCaption,
                     child: Container(
@@ -398,7 +460,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
               const SizedBox(height: 16),
 
-              // ── Category ───────────────────────────────────────────────────
+              // Category
               _CategoryDropdown(
                 selected: _categoryCtrl.text,
                 options: _categories,
@@ -411,7 +473,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
               const SizedBox(height: 16),
 
-              // ── Tags ───────────────────────────────────────────────────────
+              // Tags
               _TagsSection(
                 tags: _tags,
                 controller: _tagCtrl,
@@ -420,8 +482,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
               const SizedBox(height: 16),
 
-              // ── Location ───────────────────────────────────────────────────
-
+              // Location
               AppTextField(
                 focusNode: _locationFocus,
                 label: 'Location (Auto-detected)',
@@ -433,8 +494,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   onPressed: _handleLocationDetection,
                 ),
               ),
-
-              const SizedBox(height: 10), // Reduced height to keep map close
+              const SizedBox(height: 10),
 
               if (_showMap)
                 Container(
@@ -444,7 +504,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     border: Border.all(color: AppColors.borderGrey),
                   ),
                   child: ClipRRect(
-                    // Rounds the corners of the map
                     borderRadius: BorderRadius.circular(12),
                     child: GoogleMap(
                       initialCameraPosition: const CameraPosition(
@@ -458,9 +517,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                 ),
 
-              const SizedBox(height: 28), // Space after the map/field
+              const SizedBox(height: 28),
 
-              // ── Submit ─────────────────────────────────────────────────────
+              // Submit
               AppButton(
                 label: 'Create Post',
                 onPressed: _submit,
@@ -488,7 +547,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 }
 
-// ─── Category dropdown ─────────────────────────────────────────────────────────
+// ─── Category dropdown (unchanged) ─────────────────────────────────────────
 class _CategoryDropdown extends StatefulWidget {
   final String selected;
   final List<String> options;
@@ -595,7 +654,6 @@ class _CategoryDropdownState extends State<_CategoryDropdown> {
               }).toList(),
             ),
           ),
-        // Selected chip
         if (widget.selected.isNotEmpty) ...[
           const SizedBox(height: 8),
           Container(
@@ -627,7 +685,7 @@ class _CategoryDropdownState extends State<_CategoryDropdown> {
   }
 }
 
-// ─── Tags section ──────────────────────────────────────────────────────────────
+// ─── Tags section (unchanged) ────────────────────────────────────────────────
 class _TagsSection extends StatefulWidget {
   final List<String> tags;
   final TextEditingController controller;
@@ -675,7 +733,8 @@ class _TagsSectionState extends State<_TagsSection> {
             String filtered = _filterText(value);
             if (filtered != value) {
               widget.controller.text = filtered;
-              widget.controller.selection = TextSelection.collapsed(offset: filtered.length);
+              widget.controller.selection =
+                  TextSelection.collapsed(offset: filtered.length);
             }
           },
           style: AppTextStyles.inputText,
@@ -738,7 +797,7 @@ class _TagsSectionState extends State<_TagsSection> {
   }
 }
 
-// ─── Image source picker ───────────────────────────────────────────────────────
+// ─── Image source picker (unchanged) ─────────────────────────────────────────
 class _ImageSourceSheet extends StatelessWidget {
   final ImagePicker picker;
   const _ImageSourceSheet({required this.picker});
@@ -764,19 +823,19 @@ class _ImageSourceSheet extends StatelessWidget {
                 icon: Icons.camera_alt_outlined,
                 label: 'Camera',
                 onTap: () async {
-                final f = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
-                if (!context.mounted) return;
-                Navigator.pop(context, f != null ? [f] : null);
-              },
+                  final f = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+                  if (!context.mounted) return;
+                  Navigator.pop(context, f != null ? [f] : null);
+                },
               ),
               _SourceOption(
                 icon: Icons.photo_library_outlined,
                 label: 'Gallery',
                 onTap: () async {
-                final files = await picker.pickMultiImage(imageQuality: 85);
-                if (!context.mounted) return;
-                Navigator.pop(context, files);
-              },
+                  final files = await picker.pickMultiImage(imageQuality: 85);
+                  if (!context.mounted) return;
+                  Navigator.pop(context, files);
+                },
               ),
             ],
           ),

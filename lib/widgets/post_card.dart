@@ -9,11 +9,10 @@ const _figmaPurpleSecondary = Color(0xFFA3049F);
 const _figmaTagGreen = Color(0xFF1A7815);
 const _figmaChipGray = Color(0xFFD9D9D9);
 
-
 class PostCard extends StatelessWidget {
   final PostModel post;
   final String? currentUserId;
-  final String? userVote; // 'up', 'down', or null
+  final String? userVote;
   final VoidCallback? onUpvote;
   final VoidCallback? onDownvote;
   final VoidCallback? onTap;
@@ -121,7 +120,6 @@ class _ImageCarouselState extends State<_ImageCarousel> {
             ),
           ),
         ),
-        // Dot indicators
         if (widget.imageUrls.length > 1)
           Positioned(
             bottom: 10,
@@ -143,7 +141,6 @@ class _ImageCarouselState extends State<_ImageCarousel> {
               ),
             ),
           ),
-        // Image counter badge
         if (widget.imageUrls.length > 1)
           Positioned(
             top: 10,
@@ -170,7 +167,7 @@ class _ImageCarouselState extends State<_ImageCarousel> {
   }
 }
 
-// ─── Post Header ───────────────────────────────────────────────────────────────
+// ─── Post Header (MODIFIED: added verified icon next to timestamp) ───────────
 class _PostHeader extends StatelessWidget {
   final PostModel post;
   const _PostHeader({required this.post});
@@ -216,14 +213,37 @@ class _PostHeader extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 2),
-              Text(
-                '${post.barangay}, ${post.city} • ${_timeAgo(post.createdAt)}',
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: _figmaPurpleSecondary,
-                ),
+              // --- MODIFIED ROW: location + optional verified icon + time ---
+              Row(
+                children: [
+                  Text(
+                    '${post.barangay}, ${post.city} • ',
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: _figmaPurpleSecondary,
+                    ),
+                  ),
+                  if (post.isValidated)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4.0),
+                      child: Icon(
+                        Icons.verified,
+                        size: 12,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  Text(
+                    _timeAgo(post.createdAt),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: _figmaPurpleSecondary,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 6),
               _TagRow(tags: post.tags, isUrgent: post.isUrgent, category: post.category),
@@ -243,7 +263,7 @@ class _PostHeader extends StatelessWidget {
   }
 }
 
-// ─── Tag row ───────────────────────────────────────────────────────────────────
+// ─── Tag row (unchanged) ──────────────────────────────────────────────────────
 class _TagRow extends StatelessWidget {
   final List<String> tags;
   final bool isUrgent;
@@ -276,7 +296,6 @@ class _TagRow extends StatelessWidget {
 
   String _fallbackCategoryLabel(PostCategory category, bool isUrgent) {
     if (isUrgent) return 'Urgent';
-
     switch (category) {
       case PostCategory.tasks:
         return 'Task';
@@ -338,7 +357,7 @@ class _TagChip extends StatelessWidget {
   }
 }
 
-// ─── Expandable caption ────────────────────────────────────────────────────────
+// ─── Expandable caption (unchanged) ──────────────────────────────────────────
 class _ExpandableCaption extends StatefulWidget {
   final String authorUsername;
   final bool isVerified;
@@ -467,7 +486,7 @@ class _CaptionText extends StatelessWidget {
   }
 }
 
-// ─── Post actions (votes + comments) ──────────────────────────────────────────
+// ─── Post actions (unchanged) ─────────────────────────────────────────────────
 class _PostActions extends StatelessWidget {
   final PostModel post;
   final String? userVote;
@@ -589,7 +608,7 @@ class _VoteButton extends StatelessWidget {
   }
 }
 
-// ─── Image placeholder ─────────────────────────────────────────────────────────
+// ─── Image placeholder (unchanged) ───────────────────────────────────────────
 class _ImagePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

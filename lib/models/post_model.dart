@@ -18,16 +18,20 @@ class PostModel {
   final String title;
   final String caption;
   final String? imageUrl;
-  final List<String> imageUrls; // new multi-image field
-  final List<String> tags; // e.g. ['Clean-up', 'Trash Collection', 'Beach']
+  final List<String> imageUrls;
+  final List<String> tags;
   final PostCategory category;
   final bool isUrgent;
-  final List<String> urgentReasons; // e.g. ['Injured people']
+  final List<String> urgentReasons;
   final int upvotes;
   final int downvotes;
   final int commentCount;
   final DateTime createdAt;
-  final String? relatedTaskId; // links to a Task if category == tasks
+  final String? relatedTaskId;
+
+  // NEW: Smart Proactive Filter fields
+  final bool isValidated;
+  final String validationSource;
 
   const PostModel({
     required this.id,
@@ -50,6 +54,8 @@ class PostModel {
     this.commentCount = 0,
     required this.createdAt,
     this.relatedTaskId,
+    this.isValidated = false,
+    this.validationSource = 'none',
   });
 
   factory PostModel.fromFirestore(DocumentSnapshot doc) {
@@ -75,6 +81,8 @@ class PostModel {
       commentCount: d['commentCount'] ?? 0,
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       relatedTaskId: d['relatedTaskId'],
+      isValidated: d['isValidated'] ?? false,
+      validationSource: d['validationSource'] ?? 'none',
     );
   }
 
@@ -98,6 +106,8 @@ class PostModel {
         'commentCount': commentCount,
         'createdAt': Timestamp.fromDate(createdAt),
         'relatedTaskId': relatedTaskId,
+        'isValidated': isValidated,
+        'validationSource': validationSource,
       };
 
   static PostCategory _categoryFromString(String? s) {
@@ -113,12 +123,15 @@ class PostModel {
     }
   }
 
-    PostModel copyWith({
-      int? upvotes,
-      int? downvotes,
-      int? commentCount,
-      List<String>? imageUrls,
-    }) => PostModel(
+  PostModel copyWith({
+    int? upvotes,
+    int? downvotes,
+    int? commentCount,
+    List<String>? imageUrls,
+    bool? isValidated,
+    String? validationSource,
+  }) =>
+      PostModel(
         id: id,
         authorId: authorId,
         authorUsername: authorUsername,
@@ -139,5 +152,7 @@ class PostModel {
         commentCount: commentCount ?? this.commentCount,
         createdAt: createdAt,
         relatedTaskId: relatedTaskId,
+        isValidated: isValidated ?? this.isValidated,
+        validationSource: validationSource ?? this.validationSource,
       );
 }
