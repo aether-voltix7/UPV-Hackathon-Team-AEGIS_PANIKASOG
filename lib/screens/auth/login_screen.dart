@@ -36,7 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
     if (!mounted) return;
     if (success) {
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+      final email = _emailCtrl.text.trim();
+      final route = email == 'moderator@email.com' ? '/moderator' : '/home';
+      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
     }
   }
 
@@ -44,7 +46,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final success = await context.read<AuthProvider>().signInWithGoogle();
     if (!mounted) return;
     if (success) {
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+      final email = context.read<AuthProvider>().user?.email;
+      final route = email == 'moderator@email.com' ? '/moderator' : '/home';
+      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
     }
   }
 

@@ -13,6 +13,8 @@ import 'screens/main_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/rankings/rankings_screen.dart';
+import 'screens/moderator/moderator_dashboard.dart';
+import 'screens/moderator/moderator_queue.dart';
 import 'firebase_options.dart';
 import 'providers/post_provider.dart';
 import 'services/post_service.dart';
@@ -63,6 +65,8 @@ class PanikasogApp extends StatelessWidget {
           '/profile': (_) => const ProfileScreen(),
           '/settings': (_) => const SettingsScreen(),
           '/rankings': (_) => const RankingsScreen(),
+          '/moderator_dashboard': (context) => ModeratorDashboard(),
+          '/moderator_queue': (context) => ModeratorQueue(),
         },
       ),
     );
@@ -76,7 +80,12 @@ class _AppEntry extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     switch (auth.status) {
       case AuthStatus.authenticated:
-        return const MainScreen();
+        final email = auth.user?.email;
+        if (email == 'moderator@email.com') {
+          return const ModeratorDashboard();
+        } else {
+          return const MainScreen();
+        }
       case AuthStatus.unauthenticated:
       case AuthStatus.error:
         return const LandingScreen();
