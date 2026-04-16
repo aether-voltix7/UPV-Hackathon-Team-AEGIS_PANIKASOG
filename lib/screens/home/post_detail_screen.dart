@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import '../../core/constants/prohibited_keywords.dart';
 import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
 
@@ -19,6 +20,14 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   final TextEditingController _commentCtrl = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String _filterText(String text) {
+    String result = text;
+    for (String keyword in prohibitedKeywords) {
+      result = result.replaceAll(RegExp(keyword, caseSensitive: false), '');
+    }
+    return result;
+  }
 
   void _sharePost() {
     Share.share(
@@ -243,6 +252,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 Expanded(
                   child: TextField(
                     controller: _commentCtrl,
+                    onChanged: (value) {
+                      String filtered = _filterText(value);
+                      if (filtered != value) {
+                        _commentCtrl.text = filtered;
+                        _commentCtrl.selection = TextSelection.collapsed(offset: filtered.length);
+                      }
+                    },
                     decoration: const InputDecoration(
                       hintText: 'Write a comment...',
                       border: OutlineInputBorder(

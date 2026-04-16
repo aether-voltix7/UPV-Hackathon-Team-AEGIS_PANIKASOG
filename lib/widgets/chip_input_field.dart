@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
 import '../core/constants/text_styles.dart';
+import '../core/constants/prohibited_keywords.dart';
 
 /// A text field that adds entries as dismissible chips below.
 /// Used for Skills and Preferred Tasks in Sign-up Step 2.
@@ -32,6 +33,14 @@ class _ChipInputFieldState extends State<ChipInputField> {
   List<String> _filtered = [];
   bool _showSuggestions = false;
 
+  String _filterText(String text) {
+    String result = text;
+    for (String keyword in prohibitedKeywords) {
+      result = result.replaceAll(RegExp(keyword, caseSensitive: false), '');
+    }
+    return result;
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -40,6 +49,12 @@ class _ChipInputFieldState extends State<ChipInputField> {
   }
 
   void _onTextChanged(String value) {
+    String filtered = _filterText(value);
+    if (filtered != value) {
+      _controller.text = filtered;
+      _controller.selection = TextSelection.collapsed(offset: filtered.length);
+      value = filtered;
+    }
     if (value.isEmpty) {
       setState(() {
         _filtered = [];

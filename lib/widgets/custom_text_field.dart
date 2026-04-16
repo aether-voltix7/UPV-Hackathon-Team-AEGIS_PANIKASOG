@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants/colors.dart';
 import '../core/constants/text_styles.dart';
+import '../core/constants/prohibited_keywords.dart';
 
 class AppTextField extends StatefulWidget {
   final String label;
@@ -23,6 +24,7 @@ class AppTextField extends StatefulWidget {
   final void Function(String)? onFieldSubmitted;
   final bool autofocus;
   final EdgeInsets? contentPadding;
+  final List<String>? prohibitedKeywords;
 
   const AppTextField({
     super.key,
@@ -45,6 +47,7 @@ class AppTextField extends StatefulWidget {
     this.onFieldSubmitted,
     this.autofocus = false,
     this.contentPadding,
+    this.prohibitedKeywords,
   });
 
   @override
@@ -53,6 +56,15 @@ class AppTextField extends StatefulWidget {
 
 class _AppTextFieldState extends State<AppTextField> {
   bool _obscureText = true;
+
+  String _filterText(String text) {
+    String result = text;
+    final keywords = widget.prohibitedKeywords ?? prohibitedKeywords;
+    for (String keyword in keywords) {
+      result = result.replaceAll(RegExp(keyword, caseSensitive: false), '');
+    }
+    return result;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +91,14 @@ class _AppTextFieldState extends State<AppTextField> {
           readOnly: widget.readOnly,
           maxLines: widget.isPassword ? 1 : widget.maxLines,
           inputFormatters: widget.inputFormatters,
-          onChanged: widget.onChanged,
+          onChanged: (value) {
+            String filtered = _filterText(value);
+            if (filtered != value) {
+              widget.controller?.text = filtered;
+              widget.controller?.selection = TextSelection.collapsed(offset: filtered.length);
+            }
+            widget.onChanged?.call(filtered);
+          },
           onTap: widget.onTap,
           focusNode: widget.focusNode,
           textInputAction: widget.textInputAction,
@@ -119,12 +138,13 @@ class _AppTextFieldState extends State<AppTextField> {
 }
 
 // ─── Search-style input ────────────────────────────────────────────────────────
-class AppSearchField extends StatelessWidget {
+class AppSearchField extends StatefulWidget {
   final String hint;
   final TextEditingController? controller;
   final void Function(String)? onChanged;
   final void Function(String)? onSubmitted;
   final VoidCallback? onTap;
+  final List<String>? prohibitedKeywords;
 
   const AppSearchField({
     super.key,
@@ -133,18 +153,40 @@ class AppSearchField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.onTap,
+    this.prohibitedKeywords,
   });
+
+  @override
+  State<AppSearchField> createState() => _AppSearchFieldState();
+}
+
+class _AppSearchFieldState extends State<AppSearchField> {
+  String _filterText(String text) {
+    String result = text;
+    final keywords = widget.prohibitedKeywords ?? prohibitedKeywords;
+    for (String keyword in keywords) {
+      result = result.replaceAll(RegExp(keyword, caseSensitive: false), '');
+    }
+    return result;
+  }
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
-      controller: controller,
-      onChanged: onChanged,
-      onFieldSubmitted: onSubmitted,
-      onTap: onTap,
+      controller: widget.controller,
+      onChanged: (value) {
+        String filtered = _filterText(value);
+        if (filtered != value) {
+          widget.controller?.text = filtered;
+          widget.controller?.selection = TextSelection.collapsed(offset: filtered.length);
+        }
+        widget.onChanged?.call(filtered);
+      },
+      onFieldSubmitted: widget.onSubmitted,
+      onTap: widget.onTap,
       style: AppTextStyles.inputText,
       decoration: InputDecoration(
-        hintText: hint,
+        hintText: widget.hint,
         hintStyle: AppTextStyles.inputHint,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import '../../core/constants/prohibited_keywords.dart';
 import '../../models/task_model.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -30,6 +31,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   DateTime _startDate = DateTime.now().add(const Duration(hours: 2));
   DateTime _endDate = DateTime.now().add(const Duration(hours: 6));
 
+  String _filterText(String text) {
+    String result = text;
+    for (String keyword in prohibitedKeywords) {
+      result = result.replaceAll(RegExp(keyword, caseSensitive: false), '');
+    }
+    return result;
+  }
+
   @override
   void dispose() {
     _titleCtrl.dispose();
@@ -42,13 +51,15 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   Future<void> _verifyLocation() async {
     final address = _locationCtrl.text.trim();
     if (address.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
     final coords = await LocationService().getCoordinatesFromAddress(address);
-    if (coords == null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    if (!mounted) return;
+    if (coords == null) {
+      messenger.showSnackBar(
         const SnackBar(content: Text('Location not found. Please enter a valid address.'), backgroundColor: Colors.red),
       );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    } else {
+      messenger.showSnackBar(
         const SnackBar(content: Text('Location verified!'), backgroundColor: AppColors.success),
       );
     }
@@ -90,6 +101,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               TextFormField(
                 controller: _titleCtrl,
                 style: AppTextStyles.inputText,
+                inputFormatters: const [ProhibitedKeywordFormatter()],
                 decoration: const InputDecoration(hintText: 'e.g. Medical Assistance for Injured...'),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Title is required' : null,
               ),
@@ -99,6 +111,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 controller: _descCtrl,
                 maxLines: 3,
                 style: AppTextStyles.inputText,
+                inputFormatters: const [ProhibitedKeywordFormatter()],
                 decoration: const InputDecoration(hintText: 'Describe the task in detail...'),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Description is required' : null,
               ),
@@ -120,10 +133,12 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 controller: _tagCtrl,
                 style: AppTextStyles.inputText,
                 textInputAction: TextInputAction.done,
+                inputFormatters: const [ProhibitedKeywordFormatter()],
                 onFieldSubmitted: (v) {
-                  if (v.trim().isNotEmpty) {
+                  final filtered = _filterText(v.trim());
+                  if (filtered.isNotEmpty) {
                     setState(() {
-                      _tags.add(v.trim());
+                      _tags.add(filtered);
                       _tagCtrl.clear();
                     });
                   }
@@ -133,9 +148,10 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
                     onPressed: () {
-                      if (_tagCtrl.text.trim().isNotEmpty) {
+                      final filtered = _filterText(_tagCtrl.text.trim());
+                      if (filtered.isNotEmpty) {
                         setState(() {
-                          _tags.add(_tagCtrl.text.trim());
+                          _tags.add(filtered);
                           _tagCtrl.clear();
                         });
                       }
@@ -156,6 +172,13 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               TextFormField(
                 controller: _locationCtrl,
                 style: AppTextStyles.inputText,
+                onChanged: (value) {
+                  String filtered = _filterText(value);
+                  if (filtered != value) {
+                    _locationCtrl.text = filtered;
+                    _locationCtrl.selection = TextSelection.collapsed(offset: filtered.length);
+                  }
+                },
                 decoration: InputDecoration(
                   hintText: 'e.g., La Paz, Iloilo City',
                   suffixIcon: IconButton(
@@ -176,7 +199,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                           initialValue: _volunteers.toString(),
                           style: AppTextStyles.inputText,
                           keyboardType: TextInputType.number,
-                          onChanged: (v) => _volunteers = int.tryParse(v) ?? 1,
+                          onChanged: (value) {
+                            String filtered = _filterText(value);
+                            if (filtered != value) {
+                              // For numbers, perhaps don't filter, but since it's text, filter anyway
+                              // But to avoid issues, maybe skip for numbers
+                            }
+                            _volunteers = int.tryParse(filtered) ?? 1;
+                          },
                           decoration: const InputDecoration(),
                         ),
                       ],
@@ -192,7 +222,13 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                           initialValue: _points.toString(),
                           style: AppTextStyles.inputText,
                           keyboardType: TextInputType.number,
-                          onChanged: (v) => _points = int.tryParse(v) ?? 100,
+                          onChanged: (value) {
+                            String filtered = _filterText(value);
+                            if (filtered != value) {
+                              // Skip filtering for numbers
+                            }
+                            _points = int.tryParse(filtered) ?? 100;
+                          },
                           decoration: const InputDecoration(),
                         ),
                       ],
@@ -243,15 +279,17 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   }
 
   Future<void> _pickDate(BuildContext context, bool isStart) async {
+    final buildContext = context;
     final picked = await showDatePicker(
-      context: context,
+      context: buildContext,
       initialDate: isStart ? _startDate : _endDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked == null) return;
+    if (!mounted) return;
     final time = await showTimePicker(
-      context: context,
+      context: buildContext,
       initialTime: TimeOfDay.fromDateTime(isStart ? _startDate : _endDate),
     );
     if (time == null) return;
@@ -277,7 +315,10 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     setState(() => _submitting = true);
     final user = context.read<AuthProvider>().user;
     final locationParts = _locationCtrl.text.split(',');
-    final success = await context.read<TaskProvider>().createTask(
+    final taskProvider = context.read<TaskProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final success = await taskProvider.createTask(
           title: _titleCtrl.text.trim(),
           description: _descCtrl.text.trim(),
           barangay: locationParts.first.trim(),
@@ -291,13 +332,13 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           createdBy: user?.uid ?? '',
           isUrgent: _isUrgent,
         );
+    if (!mounted) return;
     setState(() => _submitting = false);
-    if (!mounted) return; // ADDED
     if (success != null) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task created! 🎉'), backgroundColor: AppColors.success));
+      navigator.pop();
+      messenger.showSnackBar(const SnackBar(content: Text('Task created! 🎉'), backgroundColor: AppColors.success));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to create task'), backgroundColor: AppColors.error));
+      messenger.showSnackBar(const SnackBar(content: Text('Failed to create task'), backgroundColor: AppColors.error));
     }
   }
 

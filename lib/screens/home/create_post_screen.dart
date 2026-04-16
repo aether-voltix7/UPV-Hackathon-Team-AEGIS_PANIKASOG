@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import '../../core/constants/prohibited_keywords.dart';
 import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/post_provider.dart';
@@ -46,6 +47,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     'Relief Distribution',
     'Preparedness',
   ];
+
+  String _filterText(String text) {
+    String result = text;
+    for (String keyword in prohibitedKeywords) {
+      result = result.replaceAll(RegExp(keyword, caseSensitive: false), '');
+    }
+    return result;
+  }
 
   @override
   void initState() {
@@ -324,6 +333,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     controller: _captionCtrl,
                     maxLines: 5,
                     style: AppTextStyles.inputText,
+                    onChanged: (value) {
+                      String filtered = _filterText(value);
+                      if (filtered != value) {
+                        _captionCtrl.text = filtered;
+                        _captionCtrl.selection = TextSelection.collapsed(offset: filtered.length);
+                      }
+                    },
                     decoration: const InputDecoration(
                       hintText:
                           'e.g. Our community cleanup drive was a huge success...',
@@ -612,7 +628,7 @@ class _CategoryDropdownState extends State<_CategoryDropdown> {
 }
 
 // ─── Tags section ──────────────────────────────────────────────────────────────
-class _TagsSection extends StatelessWidget {
+class _TagsSection extends StatefulWidget {
   final List<String> tags;
   final TextEditingController controller;
   final void Function(String) onAdd;
@@ -624,6 +640,19 @@ class _TagsSection extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
   });
+
+  @override
+  State<_TagsSection> createState() => _TagsSectionState();
+}
+
+class _TagsSectionState extends State<_TagsSection> {
+  String _filterText(String text) {
+    String result = text;
+    for (String keyword in prohibitedKeywords) {
+      result = result.replaceAll(RegExp(keyword, caseSensitive: false), '');
+    }
+    return result;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -641,26 +670,38 @@ class _TagsSection extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         TextFormField(
-          controller: controller,
+          controller: widget.controller,
+          onChanged: (value) {
+            String filtered = _filterText(value);
+            if (filtered != value) {
+              widget.controller.text = filtered;
+              widget.controller.selection = TextSelection.collapsed(offset: filtered.length);
+            }
+          },
           style: AppTextStyles.inputText,
           textInputAction: TextInputAction.done,
-          onFieldSubmitted: onAdd,
+          onFieldSubmitted: (v) {
+            if (v.trim().isNotEmpty) {
+              widget.onAdd(v.trim());
+              widget.controller.clear();
+            }
+          },
           decoration: InputDecoration(
             hintText: 'Enter tags...',
             hintStyle: AppTextStyles.inputHint,
             suffixIcon: GestureDetector(
-              onTap: () => onAdd(controller.text),
+              onTap: () => widget.onAdd(widget.controller.text),
               child: const Icon(Icons.add_circle_outline,
                   color: AppColors.primary, size: 22),
             ),
           ),
         ),
-        if (tags.isNotEmpty) ...[
+        if (widget.tags.isNotEmpty) ...[
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 6,
-            children: tags.map((tag) {
+            children: widget.tags.map((tag) {
               return Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -682,7 +723,7 @@ class _TagsSection extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     GestureDetector(
-                      onTap: () => onRemove(tag),
+                      onTap: () => widget.onRemove(tag),
                       child: const Icon(Icons.close,
                           size: 14, color: AppColors.primary),
                     ),

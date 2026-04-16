@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import '../../core/constants/prohibited_keywords.dart';
 import '../../models/user_model.dart';
 import '../../models/post_model.dart';
 import '../../models/task_model.dart';
@@ -240,13 +241,31 @@ class _InfoTab extends StatefulWidget {
 }
 
 class _InfoTabState extends State<_InfoTab> {
+  String _filterText(String text) {
+    String result = text;
+    for (String keyword in prohibitedKeywords) {
+      result = result.replaceAll(RegExp(keyword, caseSensitive: false), '');
+    }
+    return result;
+  }
+
   Future<void> _editField(String field, String currentValue) async {
     final controller = TextEditingController(text: currentValue);
     final newValue = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         title: Text('Edit $field'),
-        content: TextField(controller: controller, decoration: InputDecoration(hintText: 'New $field')),
+        content: TextField(
+          controller: controller,
+          onChanged: (value) {
+            String filtered = _filterText(value);
+            if (filtered != value) {
+              controller.text = filtered;
+              controller.selection = TextSelection.collapsed(offset: filtered.length);
+            }
+          },
+          decoration: InputDecoration(hintText: 'New $field'),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
@@ -304,6 +323,13 @@ class _InfoTabState extends State<_InfoTab> {
               children: [
                 TextField(
                   controller: controller,
+                  onChanged: (value) {
+                    String filtered = _filterText(value);
+                    if (filtered != value) {
+                      controller.text = filtered;
+                      controller.selection = TextSelection.collapsed(offset: filtered.length);
+                    }
+                  },
                   decoration: InputDecoration(
                     hintText: 'Add new item',
                     suffixIcon: IconButton(

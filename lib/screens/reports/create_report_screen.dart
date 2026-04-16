@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import '../../core/constants/prohibited_keywords.dart';
 import '../../models/report_model.dart';
 import '../../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +25,14 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
   String? _selectedSubcategory;
   final List<File> _photos = [];
   bool _submitting = false;
+
+  String _filterText(String text) {
+    String result = text;
+    for (String keyword in prohibitedKeywords) {
+      result = result.replaceAll(RegExp(keyword, caseSensitive: false), '');
+    }
+    return result;
+  }
 
   @override
   void dispose() {
@@ -92,6 +101,13 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _titleCtrl,
+              onChanged: (value) {
+                String filtered = _filterText(value);
+                if (filtered != value) {
+                  _titleCtrl.text = filtered;
+                  _titleCtrl.selection = TextSelection.collapsed(offset: filtered.length);
+                }
+              },
               decoration: const InputDecoration(hintText: 'e.g., Flooded Road - Brgy. Rizal'),
               validator: (v) => v == null || v.trim().isEmpty ? 'Title required' : null,
             ),
@@ -118,6 +134,13 @@ class _CreateReportScreenState extends State<CreateReportScreen> {
             TextFormField(
               controller: _descCtrl,
               maxLines: 3,
+              onChanged: (value) {
+                String filtered = _filterText(value);
+                if (filtered != value) {
+                  _descCtrl.text = filtered;
+                  _descCtrl.selection = TextSelection.collapsed(offset: filtered.length);
+                }
+              },
               decoration: const InputDecoration(hintText: 'Describe the hazard or incident...'),
               validator: (v) => v == null || v.trim().isEmpty ? 'Description required' : null,
             ),
